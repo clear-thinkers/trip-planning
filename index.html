@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Trip Planner</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand-block">
+          <img
+            class="brand-image"
+            alt=""
+            src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=240&q=70"
+          />
+          <div>
+            <p class="eyebrow">Pre-trip workspace</p>
+            <h1>Trip Planner</h1>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <button class="secondary-button" id="allTripsButton" type="button" hidden>All trips</button>
+          <button class="secondary-button" id="exportButton" type="button" hidden>Export JSON</button>
+          <label class="secondary-button file-button" id="importButton" for="importInput" hidden>Import JSON</label>
+          <input id="importInput" type="file" accept="application/json" />
+          <button class="primary-button" id="addItemButton" type="button" hidden>Add item</button>
+        </div>
+      </header>
+
+      <main>
+        <section class="trips-page" id="tripsPage" aria-label="Saved trips">
+          <div class="section-header">
+            <div>
+              <p class="eyebrow">Saved trips</p>
+              <h2>Choose a trip to plan</h2>
+            </div>
+            <button class="primary-button" id="newTripButton" type="button">New trip</button>
+          </div>
+          <div class="trip-card-grid" id="tripsList"></div>
+        </section>
+
+        <section class="trip-settings app-screen" id="tripSettings" aria-label="Trip settings" hidden>
+          <div class="field compact-field">
+            <label for="tripTitle">Trip name</label>
+            <input id="tripTitle" type="text" />
+          </div>
+          <div class="field date-field">
+            <label for="tripStart">Start</label>
+            <input id="tripStart" type="date" />
+          </div>
+          <div class="field date-field">
+            <label for="tripEnd">End</label>
+            <input id="tripEnd" type="date" />
+          </div>
+          <div class="field compact-field">
+            <label for="tripTimezone">Timezone</label>
+            <select id="tripTimezone"></select>
+          </div>
+        </section>
+
+        <section class="workspace app-screen" id="workspace" hidden>
+          <nav class="view-tabs" aria-label="Views">
+            <button class="tab-button active" data-view="calendar" type="button">Calendar</button>
+            <button class="tab-button" data-view="list" type="button">List</button>
+            <button class="tab-button" data-view="day" type="button">Day detail</button>
+          </nav>
+
+          <section class="filters" aria-label="Filters">
+            <div class="field">
+              <label for="typeFilter">Type</label>
+              <select id="typeFilter">
+                <option value="all">All types</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="statusFilter">Status</label>
+              <select id="statusFilter">
+                <option value="all">All statuses</option>
+              </select>
+            </div>
+            <div class="field search-field">
+              <label for="searchInput">Search</label>
+              <input id="searchInput" type="search" placeholder="Title, city, people, notes" />
+            </div>
+          </section>
+
+          <section class="alerts" id="alerts" aria-live="polite"></section>
+
+          <section class="content-grid">
+            <div class="main-panel">
+              <section class="view-panel active" id="calendarView" aria-label="Calendar view"></section>
+              <section class="view-panel" id="listView" aria-label="List view"></section>
+              <section class="view-panel" id="dayView" aria-label="Day detail view"></section>
+            </div>
+            <aside class="side-panel" id="sidePanel" aria-label="Selected day"></aside>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <dialog class="item-dialog" id="itemDialog">
+      <form method="dialog" id="itemForm" class="item-form">
+        <div class="dialog-header">
+          <div>
+            <p class="eyebrow" id="dialogEyebrow">Plan item</p>
+            <h2 id="dialogTitle">Add item</h2>
+          </div>
+          <button class="icon-button" id="closeDialogButton" type="button" aria-label="Close">x</button>
+        </div>
+
+        <input id="itemId" type="hidden" />
+
+        <div class="form-grid">
+          <div class="field span-two">
+            <label for="itemTitle">Title</label>
+            <input id="itemTitle" type="text" required />
+          </div>
+          <div class="field">
+            <label for="itemType">Type</label>
+            <select id="itemType" required></select>
+          </div>
+          <div class="field">
+            <label for="itemStatus">Status</label>
+            <select id="itemStatus" required></select>
+          </div>
+          <div class="field">
+            <label for="itemStartDate">Start date</label>
+            <input id="itemStartDate" type="date" />
+            <label for="itemStartTime">Start time</label>
+            <input id="itemStartTime" type="time" />
+            <label class="checkbox-field" for="itemStartTbd">
+              <input id="itemStartTbd" type="checkbox" />
+              Start TBD
+            </label>
+            <label class="checkbox-field" for="itemStartTimeTbd">
+              <input id="itemStartTimeTbd" type="checkbox" />
+              Start time TBD
+            </label>
+          </div>
+          <div class="field">
+            <label for="itemStartTimezone">Start time zone</label>
+            <select id="itemStartTimezone"></select>
+          </div>
+          <div class="field">
+            <label for="itemEndDate">End date</label>
+            <input id="itemEndDate" type="date" />
+            <label for="itemEndTime">End time</label>
+            <input id="itemEndTime" type="time" />
+            <label class="checkbox-field" for="itemEndTbd">
+              <input id="itemEndTbd" type="checkbox" />
+              End TBD
+            </label>
+            <label class="checkbox-field" for="itemEndTimeTbd">
+              <input id="itemEndTimeTbd" type="checkbox" />
+              End time TBD
+            </label>
+          </div>
+          <div class="field">
+            <label for="itemEndTimezone">End time zone</label>
+            <select id="itemEndTimezone"></select>
+          </div>
+          <div class="field" id="genericCityField">
+            <label for="itemCity">City</label>
+            <input id="itemCity" type="text" />
+          </div>
+          <div class="field" id="genericLocationField">
+            <label for="itemLocation">Location</label>
+            <input id="itemLocation" type="text" />
+          </div>
+          <div class="field" id="flightDepartureField" hidden>
+            <label for="itemDepartureCity">Departing city</label>
+            <input id="itemDepartureCity" type="text" />
+          </div>
+          <div class="field" id="flightArrivalField" hidden>
+            <label for="itemArrivalCity">Arrival city</label>
+            <input id="itemArrivalCity" type="text" />
+          </div>
+          <div class="field" id="flightAirlineField" hidden>
+            <label for="itemAirline">Airline</label>
+            <input id="itemAirline" type="text" />
+          </div>
+          <div class="field">
+            <label for="itemPeople">People</label>
+            <select id="itemPeople" multiple size="4"></select>
+            <p class="field-hint">Use Ctrl or Cmd to select more than one person.</p>
+          </div>
+          <div class="field">
+            <label for="itemConfirmation">Confirmation</label>
+            <input id="itemConfirmation" type="text" />
+          </div>
+          <div class="field">
+            <label for="itemCost">Cost</label>
+            <input id="itemCost" type="number" min="0" step="0.01" />
+          </div>
+          <div class="field">
+            <label for="itemTags">Tags</label>
+            <input id="itemTags" type="text" placeholder="Comma separated" />
+          </div>
+          <div class="field span-two">
+            <label for="itemLinks">Links</label>
+            <input id="itemLinks" type="url" placeholder="https://..." />
+          </div>
+          <div class="field span-two">
+            <label for="itemNotes">Notes</label>
+            <textarea id="itemNotes" rows="4"></textarea>
+          </div>
+        </div>
+
+        <div class="copy-panel" id="copyItemSection" hidden>
+          <div class="field">
+            <label for="copyItemDate">Copy to date</label>
+            <input id="copyItemDate" type="date" />
+          </div>
+          <button class="secondary-button" id="copyItemButton" type="button">Copy activity</button>
+        </div>
+
+        <div class="dialog-actions">
+          <button class="danger-button" id="deleteItemButton" type="button">Delete</button>
+          <div class="dialog-action-group">
+            <button class="secondary-button" id="cancelItemButton" type="button">Cancel</button>
+            <button class="primary-button" id="saveItemButton" type="submit">Save item</button>
+          </div>
+        </div>
+      </form>
+    </dialog>
+
+    <script src="app.js"></script>
+  </body>
+</html>
