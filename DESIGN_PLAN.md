@@ -157,7 +157,7 @@ Fields:
 - attachments
 - confirmationCode
 - cost
-- currency
+- currency: USD or RMB
 - peopleIds
 - tags
 - source
@@ -168,11 +168,19 @@ Timezone choices are intentionally limited for the first version:
 
 - US EST
 - US CDT
-- Beijing
+- 北京时间
 
-Start and end date/time fields should each store an explicit timezone choice, defaulting to Beijing.
+Start and end date/time fields should each store an explicit timezone choice, defaulting to 北京时间.
+Timezone dropdowns should use the full labels above; itinerary cards should use compact labels: ET, CT, and 北京.
 Users can mark either start or end date/time as fully TBD, or mark only the time as TBD while keeping the date.
 Those records should surface planning warnings.
+
+Currency choices are intentionally limited for the first version:
+
+- USD
+- RMB
+
+Each itinerary item can store an optional cost and a required currency value, defaulting to USD.
 
 Recommended item statuses:
 
@@ -182,6 +190,26 @@ Recommended item statuses:
 - Confirmed
 - Done
 - Skipped
+
+Status icon design:
+
+- Place a small status icon in the top-right corner of every itinerary card.
+- Keep the text status label available in detail views and for screen readers; the icon is a quick visual cue, not the only status signal.
+- Use a 20px square touch/click target with a 16px icon inside.
+- Use the same icon set across the app, preferably a line icon set such as Lucide.
+- Use distinct status colors so cards can be scanned quickly: gray for Idea, blue for Planned, amber for Booked, green for Confirmed/Done, and muted gray for Skipped.
+- Give each icon a lightly tinted background and border, not just a colored stroke, so the state remains visible on dense calendar cards.
+
+Status icon mapping:
+
+| Status | Icon | Color role | Meaning |
+| --- | --- | --- | --- |
+| Idea | `lightbulb` | Gray | Possible plan, not committed yet. |
+| Planned | `calendar-days` | Blue | Placed on the itinerary but not booked. |
+| Booked | `ticket-check` | Amber | Reservation or ticket exists. |
+| Confirmed | `shield-check` | Green | Details are verified and ready. |
+| Done | `circle-check` | Green | Completed during the trip. |
+| Skipped | `circle-slash` | Muted gray | Intentionally not happening. |
 
 Recommended priorities:
 
@@ -368,6 +396,7 @@ Purpose:
 
 - Review timing and density.
 - Spot overlaps and awkward gaps.
+- Share a printable/PDF calendar summary with others.
 
 Modes:
 
@@ -380,6 +409,10 @@ Rules:
 - All-day or multi-day items appear at the top.
 - Flights and lodging use distinct visual treatment.
 - Overlaps show clear warnings.
+- A Print calendar action should open the browser print dialog for the Calendar view.
+- The print layout should use portrait orientation and fit the calendar dates onto one page.
+- The print layout should hide editing controls, filters, alerts, side panels, and dense item metadata, leaving a clean calendar with trip title and date range.
+- Users can save the print output as a PDF for sharing.
 
 ### List View
 
@@ -399,8 +432,23 @@ Each row should show:
 - Type
 - Title
 - Location
-- Status
+- Status icon in the card's top-right corner
 - Key confirmation info when relevant
+
+Status icon behavior:
+
+- The icon should remain visually stable as status changes and should not shift the card layout.
+- Hover or focus can reveal the full status label in a tooltip.
+- Clicking the icon may open an inline status picker once inline editing exists.
+- Cards can still show a status badge elsewhere when extra clarity is useful, but the top-right icon is the primary compact status cue.
+
+Time display rules:
+
+- Use compact 12-hour time on itinerary cards and rows.
+- Drop `:00` for exact hours, such as `7pm`.
+- Keep minutes for non-exact hours, such as `10:10am`.
+- Use compact timezone labels on cards: ET, CT, and 北京.
+- Hide timezone labels when every displayed item on the same day uses the same timezone.
 
 ### Day Detail View
 
@@ -609,8 +657,8 @@ Remaining decisions that will shape the first implementation:
 1. Do you usually plan solo trips, family trips, or group trips?
 2. Do you care about importing from email/calendar later, or is manual entry enough?
 3. Do you want map/location support in the MVP, or should that wait?
-4. Should cost/budget tracking be included early or kept as optional metadata?
-5. Do you want a printable/exportable itinerary in the first usable version?
+4. Should cost metadata roll up into budget totals, or stay item-level only?
+5. Should PDF sharing expand beyond the calendar into a full itinerary packet?
 6. Should calendar editing support drag/drop in MVP, or is click-to-edit enough first?
 
 ## 15. Recommended First Decisions

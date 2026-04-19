@@ -13,12 +13,41 @@ const ITEM_TYPES = [
 
 const STATUSES = ["Idea", "Planned", "Booked", "Confirmed", "Done", "Skipped"];
 
+const CURRENCIES = ["USD", "RMB"];
+
+const STATUS_ICONS = {
+  Idea: {
+    className: "idea",
+    path: '<path d="M9 18h6" /><path d="M10 22h4" /><path d="M12 2a7 7 0 0 0-4 12.74V16h8v-1.26A7 7 0 0 0 12 2Z" />',
+  },
+  Planned: {
+    className: "planned",
+    path: '<path d="M8 2v4" /><path d="M16 2v4" /><rect x="3" y="4" width="18" height="18" rx="3" /><path d="M3 10h18" /><path d="M8 14h.01" /><path d="M12 14h.01" /><path d="M16 14h.01" />',
+  },
+  Booked: {
+    className: "booked",
+    path: '<path d="M2 9a3 3 0 0 0 0 6v3a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-3a3 3 0 0 0 0-6V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" /><path d="m9 12 2 2 4-4" />',
+  },
+  Confirmed: {
+    className: "confirmed",
+    path: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" /><path d="m9 12 2 2 4-4" />',
+  },
+  Done: {
+    className: "done",
+    path: '<circle cx="12" cy="12" r="10" /><path d="m9 12 2 2 4-4" />',
+  },
+  Skipped: {
+    className: "skipped",
+    path: '<circle cx="12" cy="12" r="10" /><path d="m5 5 14 14" />',
+  },
+};
+
 const DEFAULT_PEOPLE = ["Dad", "Mom", "Nora", "Freddie"];
 
 const TIMEZONES = [
-  { value: "US_EST", label: "US EST" },
-  { value: "US_CDT", label: "US CDT" },
-  { value: "BEIJING", label: "Beijing" },
+  { value: "US_EST", label: "US EST", shortLabel: "ET" },
+  { value: "US_CDT", label: "US CDT", shortLabel: "CT" },
+  { value: "BEIJING", label: "北京时间", shortLabel: "北京" },
 ];
 
 const DEFAULT_TIMEZONE = "BEIJING";
@@ -59,6 +88,7 @@ function cacheElements() {
     "tripTimezone",
     "allTripsButton",
     "newTripButton",
+    "printCalendarButton",
     "exportButton",
     "importButton",
     "importInput",
@@ -108,6 +138,7 @@ function cacheElements() {
     "itemPeople",
     "itemConfirmation",
     "itemCost",
+    "itemCurrency",
     "itemTags",
     "itemLinks",
     "itemNotes",
@@ -126,6 +157,9 @@ function populateSelects() {
   STATUSES.forEach((status) => {
     els.statusFilter.append(new Option(status, status));
     els.itemStatus.append(new Option(status, status));
+  });
+  CURRENCIES.forEach((currency) => {
+    els.itemCurrency.append(new Option(currency, currency));
   });
   populateTimezoneSelect(els.tripTimezone);
   populateTimezoneSelect(els.itemStartTimezone);
@@ -241,6 +275,7 @@ function bindEvents() {
   els.cancelItemButton.addEventListener("click", closeItemDialog);
   els.deleteItemButton.addEventListener("click", deleteCurrentItem);
   els.copyItemButton.addEventListener("click", copyCurrentItemToDate);
+  els.printCalendarButton.addEventListener("click", printCalendar);
   els.exportButton.addEventListener("click", exportTrip);
   els.importInput.addEventListener("change", importTrip);
 }
@@ -328,7 +363,7 @@ function normalizeItem(item) {
     attachments: Array.isArray(item.attachments) ? item.attachments : [],
     confirmationCode: item.confirmationCode || "",
     cost: item.cost || "",
-    currency: item.currency || "USD",
+    currency: normalizeCurrency(item.currency),
     people: Array.isArray(item.people) ? item.people : splitList(item.people),
     tags: Array.isArray(item.tags) ? item.tags : splitList(item.tags),
     source: item.source || "manual",
@@ -413,6 +448,7 @@ function renderScreens() {
   els.tripSettings.hidden = !inWorkspace;
   els.workspace.hidden = !inWorkspace;
   els.allTripsButton.hidden = !inWorkspace;
+  els.printCalendarButton.hidden = !inWorkspace;
   els.exportButton.hidden = !inWorkspace;
   els.importButton.hidden = !inWorkspace;
   els.addItemButton.hidden = !inWorkspace;
@@ -548,24 +584,29 @@ function renderAlerts() {
 
 function renderCalendar() {
   const dates = getCalendarDates();
+  const printWeekCount = Math.max(1, Math.ceil(dates.length / 7));
+  const printWeekHeight = `${Math.min(1.45, 9.15 / printWeekCount).toFixed(2)}in`;
   const days = dates.map((date) => {
     if (!date.inRange) {
       return `<div class="day-cell empty" aria-hidden="true"></div>`;
     }
-    const items = getItemsForDate(date.iso).slice(0, 4);
+    const dayItems = getItemsForDate(date.iso);
+    const showTimezone = shouldShowTimezoneForItems(dayItems);
+    const items = dayItems.slice(0, 4);
     const city = getPrimaryCity(date.iso);
     const itemMarkup = items
       .map(
         (item) => `
           <button class="item-pill" data-action="edit" data-id="${item.id}" data-type="${escapeHtml(item.type)}" type="button">
-            <span class="item-time">${escapeHtml(formatItemTime(item))}</span>
+            ${renderStatusIcon(item.status)}
+            <span class="item-time">${escapeHtml(formatItemTime(item, { showTimezone }))}</span>
             <span class="item-title">${escapeHtml(item.title)}</span>
             <span class="item-meta">${escapeHtml(getItemMeta(item))}</span>
           </button>
         `,
       )
       .join("");
-    const hiddenCount = getItemsForDate(date.iso).length - items.length;
+    const hiddenCount = dayItems.length - items.length;
     return `
       <div class="day-cell ${date.iso === state.selectedDate ? "selected" : ""}" data-date="${date.iso}">
         <button class="day-button" data-action="select-day" data-date="${date.iso}" type="button">
@@ -579,7 +620,12 @@ function renderCalendar() {
   });
 
   els.calendarView.innerHTML = `
-    <div class="calendar-board">
+    <div class="print-calendar-header">
+      <p class="eyebrow">Calendar PDF</p>
+      <h2>${escapeHtml(state.trip.title)}</h2>
+      <p>${escapeHtml(formatDateShort(state.trip.startDate))} - ${escapeHtml(formatDateShort(state.trip.endDate))}</p>
+    </div>
+    <div class="calendar-board" style="--print-week-height: ${printWeekHeight};">
       <div class="weekday-row">
         ${["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => `<div class="weekday">${day}</div>`).join("")}
       </div>
@@ -594,6 +640,7 @@ function renderList() {
   const rows = eachTripDate()
     .map((date) => {
       const items = getItemsForDate(date);
+      const showTimezone = shouldShowTimezoneForItems(items);
       return `
         <section class="section-block ${date === state.selectedDate ? "selected-section" : ""}">
           <div class="section-header">
@@ -604,7 +651,7 @@ function renderList() {
           </div>
           ${
             items.length
-              ? `<div class="timeline">${items.map(renderTimelineRow).join("")}</div>`
+              ? `<div class="timeline">${items.map((item) => renderTimelineRow(item, { showTimezone })).join("")}</div>`
               : `<div class="empty-state">No plans yet.</div>`
           }
         </section>
@@ -630,6 +677,7 @@ function renderList() {
 function renderDayView() {
   const date = state.selectedDate || state.trip.startDate;
   const items = getItemsForDate(date);
+  const showTimezone = shouldShowTimezoneForItems(items);
   const warnings = getWarnings().filter((warning) => warning.date === date);
   els.dayView.innerHTML = `
     <section class="section-block">
@@ -647,7 +695,7 @@ function renderDayView() {
       }
       ${
         items.length
-          ? `<div class="timeline">${items.map(renderTimelineRow).join("")}</div>`
+          ? `<div class="timeline">${items.map((item) => renderTimelineRow(item, { showTimezone })).join("")}</div>`
           : `<div class="empty-state">No plans yet. Add an anchor or flexible idea for this day.</div>`
       }
     </section>
@@ -658,6 +706,7 @@ function renderDayView() {
 function renderSidePanel() {
   const date = state.selectedDate || state.trip.startDate;
   const items = getItemsForDate(date);
+  const showTimezone = shouldShowTimezoneForItems(items);
   const city = getPrimaryCity(date);
   const warnings = getWarnings().filter((warning) => warning.date === date);
   els.sidePanel.innerHTML = `
@@ -680,7 +729,8 @@ function renderSidePanel() {
               .map(
                 (item) => `
                   <button class="item-pill" data-action="edit" data-id="${item.id}" data-type="${escapeHtml(item.type)}" type="button">
-                    <span class="item-time">${escapeHtml(formatItemTime(item))}</span>
+                    ${renderStatusIcon(item.status)}
+                    <span class="item-time">${escapeHtml(formatItemTime(item, { showTimezone }))}</span>
                     <span class="item-title">${escapeHtml(item.title)}</span>
                     <span class="item-meta">${escapeHtml(item.status)}</span>
                   </button>
@@ -694,22 +744,34 @@ function renderSidePanel() {
   bindDynamicActions(els.sidePanel);
 }
 
-function renderTimelineRow(item) {
+function renderTimelineRow(item, options = {}) {
   const isWarning = getWarnings().some((warning) => warning.itemIds?.includes(item.id));
   return `
     <div class="timeline-row">
-      <div class="timeline-time">${escapeHtml(formatItemTime(item))}</div>
+      <div class="timeline-time">${escapeHtml(formatItemTime(item, options))}</div>
       <button class="timeline-card ${isWarning ? "warning-border" : ""}" data-action="edit" data-id="${item.id}" data-type="${escapeHtml(item.type)}" type="button">
+        ${renderStatusIcon(item.status)}
         <strong>${escapeHtml(item.title)}</strong>
         <span class="item-meta">${escapeHtml(getItemMeta(item))}</span>
         <span class="status-line">
           <span class="badge ${escapeHtml(item.status.toLowerCase())}">${escapeHtml(item.status)}</span>
           ${item.airline ? `<span class="badge">${escapeHtml(item.airline)}</span>` : ""}
           ${item.confirmationCode ? `<span class="badge">${escapeHtml(item.confirmationCode)}</span>` : ""}
+          ${item.cost ? `<span class="badge">${escapeHtml(formatCost(item))}</span>` : ""}
           ${item.people.length ? `<span class="badge">${escapeHtml(item.people.join(", "))}</span>` : ""}
         </span>
       </button>
     </div>
+  `;
+}
+
+function renderStatusIcon(status) {
+  const icon = STATUS_ICONS[status] || STATUS_ICONS.Idea;
+  const label = status || "Idea";
+  return `
+    <span class="status-icon ${icon.className}" role="img" aria-label="${escapeHtml(`Status: ${label}`)}" title="${escapeHtml(label)}">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">${icon.path}</svg>
+    </span>
   `;
 }
 
@@ -794,6 +856,7 @@ function openItemDialog(id = null, date = null) {
   setSelectedPeople(item?.people || []);
   els.itemConfirmation.value = item?.confirmationCode || "";
   els.itemCost.value = item?.cost || "";
+  els.itemCurrency.value = normalizeCurrency(item?.currency);
   els.itemTags.value = item?.tags?.join(", ") || "";
   els.itemLinks.value = item?.links?.[0] || "";
   els.itemNotes.value = item?.notes || "";
@@ -843,6 +906,7 @@ function saveItemFromForm(event) {
     people: getSelectedPeople(),
     confirmationCode: els.itemConfirmation.value.trim(),
     cost: els.itemCost.value,
+    currency: els.itemCurrency.value,
     tags: splitList(els.itemTags.value),
     links: splitList(els.itemLinks.value),
     notes: els.itemNotes.value.trim(),
@@ -891,6 +955,12 @@ function copyCurrentItemToDate() {
   state.selectedDate = targetDate;
   closeItemDialog();
   render();
+}
+
+function printCalendar() {
+  state.view = "calendar";
+  render();
+  requestAnimationFrame(() => window.print());
 }
 
 function exportTrip() {
@@ -967,6 +1037,23 @@ function getItemsForDate(date) {
   return filteredItems()
     .filter((item) => itemOccursOnDate(item, date))
     .sort(compareItems);
+}
+
+function shouldShowTimezoneForItems(items) {
+  const timezones = new Set(items.flatMap(getDisplayTimezones));
+  return timezones.size > 1;
+}
+
+function getDisplayTimezones(item) {
+  if (!item.startDateTime && !item.endDateTime) return [];
+  const timezones = [];
+  if (!item.startTbd && item.startDateTime) {
+    timezones.push(normalizeTimezone(item.startTimezone || item.timezone));
+  }
+  if (!item.endTbd && item.endDateTime) {
+    timezones.push(normalizeTimezone(item.endTimezone || item.timezone || item.startTimezone));
+  }
+  return timezones;
 }
 
 function getTbdItems() {
@@ -1144,26 +1231,33 @@ function getLodgingWarnings() {
     }));
 }
 
-function formatItemTime(item) {
+function formatItemTime(item, options = {}) {
+  const showTimezone = options.showTimezone !== false;
   if (item.startTbd && item.endTbd) return "Start TBD / End TBD";
   if (item.startTbd) {
-    const end = item.endDateTime ? formatDateTimePiece(item.endDateTime, item.endTimezone || item.timezone, item.endTimeTbd) : "End TBD";
+    const end = item.endDateTime ? formatDateTimePiece(item.endDateTime, item.endTimezone || item.timezone, item.endTimeTbd, { showTimezone }) : "End TBD";
     return `Start TBD-${end}`;
   }
   if (!item.startDateTime) return "Start TBD";
-  const start = item.startTimeTbd ? "Time TBD" : formatTime(item.startDateTime);
-  const end = item.endTbd ? "" : item.endDateTime ? (item.endTimeTbd ? "Time TBD" : formatTime(item.endDateTime)) : "";
-  const startTimezone = formatTimezone(item.startTimezone || item.timezone);
-  const endTimezone = formatTimezone(item.endTimezone || item.timezone || item.startTimezone);
+  const start = item.startTimeTbd ? "Time TBD" : formatTime(item.startDateTime, { compact: true });
+  const end = item.endTbd ? "" : item.endDateTime ? (item.endTimeTbd ? "Time TBD" : formatTime(item.endDateTime, { compact: true })) : "";
+  const startTimezone = formatTimezone(item.startTimezone || item.timezone, { compact: true });
+  const endTimezone = formatTimezone(item.endTimezone || item.timezone || item.startTimezone, { compact: true });
+  if (!showTimezone && startTimezone === endTimezone) {
+    if (item.endTbd) return `${start}-End TBD`;
+    if (!end || end === start) return start;
+    return `${start}-${end}`;
+  }
   if (item.endTbd) return `${start} ${startTimezone}-End TBD`;
   if (!end || end === start) return `${start} ${startTimezone}`;
   if (startTimezone === endTimezone) return `${start}-${end} ${startTimezone}`;
   return `${start} ${startTimezone}-${end} ${endTimezone}`;
 }
 
-function formatDateTimePiece(dateTime, timezone, timeTbd) {
-  const time = timeTbd ? "Time TBD" : formatTime(dateTime);
-  return `${time} ${formatTimezone(timezone)}`;
+function formatDateTimePiece(dateTime, timezone, timeTbd, options = {}) {
+  const time = timeTbd ? "Time TBD" : formatTime(dateTime, { compact: true });
+  if (options.showTimezone === false) return time;
+  return `${time} ${formatTimezone(timezone, { compact: true })}`;
 }
 
 function buildDateTimeValue(date, time, timeTbd) {
@@ -1204,13 +1298,30 @@ function normalizeTimezone(value) {
   return DEFAULT_TIMEZONE;
 }
 
-function formatTimezone(value) {
-  return TIMEZONES.find((timezone) => timezone.value === normalizeTimezone(value))?.label || "Beijing";
+function normalizeCurrency(value) {
+  const normalized = String(value || "").trim().toUpperCase();
+  if (normalized === "CNY") return "RMB";
+  return CURRENCIES.includes(normalized) ? normalized : "USD";
 }
 
-function formatTime(value) {
+function formatTimezone(value, options = {}) {
+  const timezone = TIMEZONES.find((entry) => entry.value === normalizeTimezone(value));
+  if (!timezone) return options.compact ? "北京" : "北京时间";
+  return options.compact ? timezone.shortLabel : timezone.label;
+}
+
+function formatCost(item) {
+  return `${normalizeCurrency(item.currency)} ${item.cost}`;
+}
+
+function formatTime(value, options = {}) {
   const date = new Date(value);
-  return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  const hour = date.getHours();
+  const minute = date.getMinutes();
+  const displayHour = hour % 12 || 12;
+  const period = hour >= 12 ? "pm" : "am";
+  if (options.compact && minute === 0) return `${displayHour}${period}`;
+  return `${displayHour}:${String(minute).padStart(2, "0")}${options.compact ? period : ` ${period.toUpperCase()}`}`;
 }
 
 function formatDateLong(value) {

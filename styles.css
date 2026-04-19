@@ -293,6 +293,12 @@ select[multiple] {
   width: auto;
 }
 
+.cost-input-row {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) 92px;
+}
+
 textarea {
   resize: vertical;
 }
@@ -387,6 +393,10 @@ button:focus-visible {
   overflow: hidden;
 }
 
+.print-calendar-header {
+  display: none;
+}
+
 .weekday-row,
 .calendar-grid {
   display: grid;
@@ -464,7 +474,8 @@ button:focus-visible {
   border-radius: var(--radius);
   color: var(--text);
   display: block;
-  padding: 7px 8px;
+  padding: 7px 34px 7px 8px;
+  position: relative;
   text-align: left;
   width: 100%;
 }
@@ -587,7 +598,8 @@ button:focus-visible {
   border: 1px solid var(--border);
   border-left: 4px solid var(--type-plan);
   border-radius: var(--radius);
-  padding: 10px;
+  padding: 10px 38px 10px 10px;
+  position: relative;
   text-align: left;
 }
 
@@ -614,6 +626,57 @@ button:focus-visible {
 
 .timeline-card.warning-border {
   border-left-color: var(--warning);
+}
+
+.status-icon {
+  align-items: center;
+  background: #e2e8f0;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  color: #475569;
+  display: inline-flex;
+  height: 20px;
+  justify-content: center;
+  pointer-events: none;
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  width: 20px;
+}
+
+.status-icon svg {
+  fill: none;
+  height: 16px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+  width: 16px;
+}
+
+.status-icon.planned {
+  background: #dbeafe;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+}
+
+.status-icon.booked {
+  background: #fef3c7;
+  border-color: #fbbf24;
+  color: #b45309;
+}
+
+.status-icon.confirmed,
+.status-icon.done {
+  background: #dcfce7;
+  border-color: #86efac;
+  color: #166534;
+}
+
+.status-icon.skipped {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #64748b;
 }
 
 .status-line {
@@ -797,5 +860,154 @@ button:focus-visible {
 
   .copy-panel {
     grid-template-columns: 1fr;
+  }
+}
+
+@media print {
+  @page {
+    margin: 0.28in;
+    size: portrait;
+  }
+
+  * {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  body {
+    background: #ffffff;
+  }
+
+  .app-shell {
+    padding: 0;
+  }
+
+  .topbar,
+  .trip-settings,
+  .view-tabs,
+  .filters,
+  .alerts,
+  .side-panel,
+  .item-dialog {
+    display: none !important;
+  }
+
+  .workspace,
+  .main-panel {
+    max-width: none;
+    width: 100%;
+  }
+
+  .content-grid {
+    display: block;
+  }
+
+  .view-panel {
+    display: none !important;
+  }
+
+  #calendarView {
+    display: block !important;
+  }
+
+  .print-calendar-header {
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  .print-calendar-header h2 {
+    font-size: 1.05rem;
+  }
+
+  .print-calendar-header p {
+    margin-bottom: 0;
+  }
+
+  .calendar-board {
+    border-color: #aab4c3;
+    border-radius: 0;
+    box-shadow: none;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .calendar-grid {
+    grid-auto-rows: var(--print-week-height, 1.45in);
+  }
+
+  .weekday {
+    font-size: 0.68rem;
+    padding: 4px;
+  }
+
+  .day-cell {
+    cursor: default;
+    min-height: 0;
+    overflow: hidden;
+    padding: 4px;
+  }
+
+  .day-cell.selected {
+    background: #ffffff;
+    box-shadow: none;
+  }
+
+  .day-button,
+  .item-pill {
+    break-inside: avoid;
+    cursor: default;
+  }
+
+  .day-button {
+    min-height: 20px;
+  }
+
+  .date-number {
+    font-size: 0.82rem;
+  }
+
+  .day-city {
+    font-size: 0.62rem;
+  }
+
+  .item-stack {
+    gap: 3px;
+    margin-top: 3px;
+  }
+
+  .item-pill {
+    border-left-width: 3px;
+    padding: 3px 22px 3px 5px;
+  }
+
+  .item-time {
+    font-size: 0.58rem;
+    margin-bottom: 1px;
+  }
+
+  .item-title {
+    font-size: 0.66rem;
+    line-height: 1.15;
+  }
+
+  .item-meta {
+    display: none;
+  }
+
+  .status-icon {
+    height: 16px;
+    right: 4px;
+    top: 4px;
+    width: 16px;
+  }
+
+  .status-icon svg {
+    height: 12px;
+    width: 12px;
+  }
+
+  .more-count {
+    font-size: 0.58rem;
+    margin-top: 2px;
   }
 }
