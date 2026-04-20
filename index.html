@@ -66,20 +66,30 @@
             <button class="tab-button active" data-view="calendar" type="button">Calendar</button>
             <button class="tab-button" data-view="list" type="button">List</button>
             <button class="tab-button" data-view="day" type="button">Day detail</button>
+            <button class="tab-button" data-view="costs" type="button">Costs</button>
+            <button class="tab-button" data-view="controls" type="button">Controls</button>
           </nav>
 
           <section class="filters" aria-label="Filters">
-            <div class="field">
-              <label for="typeFilter">Type</label>
-              <select id="typeFilter">
+            <div class="field filter-select-field">
+              <div class="filter-label-row">
+                <label for="typeFilter">Type</label>
+                <button class="filter-toggle" data-filter-toggle aria-controls="typeFilter" aria-expanded="false" type="button">Expand</button>
+              </div>
+              <select id="typeFilter" multiple size="5">
                 <option value="all">All types</option>
               </select>
+              <p class="field-hint">Select one or more types.</p>
             </div>
-            <div class="field">
-              <label for="statusFilter">Status</label>
-              <select id="statusFilter">
+            <div class="field filter-select-field">
+              <div class="filter-label-row">
+                <label for="statusFilter">Status</label>
+                <button class="filter-toggle" data-filter-toggle aria-controls="statusFilter" aria-expanded="false" type="button">Expand</button>
+              </div>
+              <select id="statusFilter" multiple size="5">
                 <option value="all">All statuses</option>
               </select>
+              <p class="field-hint">Select one or more statuses.</p>
             </div>
             <div class="field search-field">
               <label for="searchInput">Search</label>
@@ -94,6 +104,8 @@
               <section class="view-panel active" id="calendarView" aria-label="Calendar view"></section>
               <section class="view-panel" id="listView" aria-label="List view"></section>
               <section class="view-panel" id="dayView" aria-label="Day detail view"></section>
+              <section class="view-panel" id="costsView" aria-label="Costs"></section>
+              <section class="view-panel" id="controlsView" aria-label="Controls"></section>
             </div>
             <aside class="side-panel" id="sidePanel" aria-label="Selected day"></aside>
           </section>

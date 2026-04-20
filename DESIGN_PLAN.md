@@ -9,14 +9,14 @@ Build a simple personal trip planning app that collects all travel-related plans
 - Activities and tickets
 - Family visits
 - Meals and gatherings
-- Transit, errands, buffers, and reminders
+- Transit, rest, errands, buffers, and reminders
 
 The app should support both macro review and micro adjustment:
 
 - Macro: see the whole trip across days, cities, and major commitments.
 - Micro: zoom into one day and inspect the order, timing, location, notes, and gaps between activities.
 
-This first phase is design-only. No implementation code is included here.
+The current implementation is a local-first static web app using `index.html`, `styles.css`, and `app.js`.
 
 ## 2. Core User Experience
 
@@ -48,8 +48,12 @@ Primary screens:
    - Shows all activities in order, including travel time, gaps, and conflicts.
    - Supports lightweight edits and reordering.
 
-6. Item Detail Panel
-   - Opens from any activity, flight, hotel, or meal.
+6. Controls View
+   - Lets users set the color for each item type within the current trip.
+   - Keeps item type colors editable without changing trip data or individual itinerary items.
+
+7. Item Detail Panel
+   - Opens from any itinerary item.
    - Contains confirmation numbers, addresses, links, attachments, notes, people, and cost.
 
 ## 3. Key Interaction Model
@@ -70,6 +74,7 @@ Suggested flow:
 5. User reviews conflicts, gaps, and overly busy days in calendar or day view.
 6. User tweaks dates, times, order, notes, or status before the trip.
 7. User switches to list view when they want a practical itinerary-style review.
+8. User switches to controls when they want to adjust the color coding for the trip.
 
 ## 4. MVP Scope
 
@@ -88,14 +93,16 @@ Included:
   - Family Visit
   - Meal
   - Transit
+  - Rest
   - Reminder
   - Custom
 - Calendar view by day/week.
 - List view grouped by date.
 - Day detail view.
+- Controls view for item type colors.
 - Item detail panel.
 - Basic conflict detection for overlapping timed items.
-- Search/filter by type, city, person, status, or tag.
+- Search/filter by one or more types, one or more statuses, city, person, or tag.
 - Local persistence.
 
 Not included in MVP:
@@ -123,15 +130,18 @@ Fields:
 - startDate
 - endDate
 - homeTimezone
+- itemTypeColors
 - destinationTimezones
 - defaultCurrency
 - notes
 - createdAt
 - updatedAt
 
+`itemTypeColors` stores a per-trip mapping from item type to hex color. Missing or invalid colors should fall back to the default palette so older saved trips continue to load.
+
 ### Itinerary Item
 
-Every flight, hotel stay, meal, activity, visit, or reminder is represented as an itinerary item.
+Every flight, hotel stay, meal, activity, visit, rest block, transit segment, or reminder is represented as an itinerary item.
 
 Fields:
 
@@ -331,6 +341,20 @@ Additional fields:
 - dropoffLocation
 - bookingReference
 
+### Rest
+
+Additional fields:
+
+- restType
+- location
+- notes
+
+Display behavior:
+
+- Use for downtime, recovery blocks, quiet mornings, naps, or other intentional breaks.
+- Show like other non-flight itinerary items with city, location, status, notes, and optional cost/people metadata.
+- Default to the Rest item type color, but allow the trip Controls view to override it.
+
 ## 7. View Design
 
 ### Visual Design Direction
@@ -362,7 +386,9 @@ Usage rules:
 - Use teal-green for primary actions and active states.
 - Use muted gold only for small accents, highlights, and important planning markers.
 - Use warning, error, and success colors only for status or validation.
-- Avoid introducing additional decorative colors unless a new semantic state truly needs one.
+- Use item type colors as semantic scan aids on itinerary card stripes.
+- Let users override item type colors per trip from the Controls view.
+- Avoid introducing additional decorative colors unless a new semantic state or user-controlled item type color truly needs one.
 - Keep spacing generous and controls obvious.
 - Prefer direct labels and simple interactions over dense menus.
 
@@ -472,6 +498,27 @@ Useful interactions:
 - Add a buffer block.
 - Open item detail panel.
 
+### Controls View
+
+Purpose:
+
+- Let users tune color coding for the current trip.
+- Make item types easier to scan in calendar, list, day detail, and selected day panels.
+
+Layout:
+
+- One row per supported item type.
+- Each row shows the item type label, current usage count, color swatch, color picker, editable hex color input, and reset action.
+- Include a reset-all action to return the trip to default colors.
+
+Behavior:
+
+- Color changes should apply immediately to visible itinerary cards.
+- Hex input should accept values like `#FD151B`, normalize casing, and stay synchronized with the color picker.
+- Custom colors should persist with the trip in local storage.
+- JSON export/import should preserve the trip's item type colors.
+- Invalid, missing, or older saved color data should fall back to defaults.
+
 ### Item Detail Panel
 
 Purpose:
@@ -553,20 +600,14 @@ Important design principle:
 
 ## 11. Suggested Tech Direction
 
-Because this workspace is currently empty, the implementation stack is still open, but the first version should be a web app.
+The current implementation is intentionally simple:
 
-Recommended web app stack:
+- Static HTML for structure.
+- CSS for the responsive layout, printable calendar, and item type color styling.
+- Plain JavaScript for state, rendering, local storage, JSON import/export, planning warnings, and controls.
+- Browser `localStorage` for first-version persistence.
 
-- React or Next.js for UI.
-- TypeScript for data safety.
-- IndexedDB for local persistence.
-- A calendar component only if it cleanly supports custom item rendering and drag behavior.
-
-Alternative simple stack:
-
-- Static React/Vite app.
-- Local JSON import/export.
-- Easier to deploy privately and keep lightweight.
+Future larger versions could move to React or Next.js with TypeScript if the app grows enough to need component boundaries, stronger data types, or more complex routing.
 
 Avoid in the first version:
 
@@ -610,7 +651,7 @@ If using Next.js app router, this can be adapted to the app directory convention
 
 - Define data types.
 - Create sample trip data.
-- Render calendar view first, then trip overview, list view, and day detail with static data.
+- Render calendar view first, then trip overview, list view, day detail, and controls with static data.
 - No persistence yet.
 
 ### Milestone 2: Manual Editing
@@ -620,12 +661,15 @@ If using Next.js app router, this can be adapted to the app directory convention
 - Delete item.
 - Change status.
 - Switch views while preserving selected trip/day.
+- Add controls for per-trip item type colors.
 
 ### Milestone 3: Local Persistence
 
 - Save trips locally.
 - Load existing trips.
 - Export/import JSON.
+- The current implementation uses browser `localStorage`; IndexedDB can be considered if the data model grows.
+- Preserve item type color settings in saved and exported trip data.
 
 ### Milestone 4: Planning Warnings
 
@@ -666,11 +710,11 @@ Remaining decisions that will shape the first implementation:
 Confirmed first-version decisions:
 
 - Build a browser-based personal web app.
-- Use TypeScript.
+- Use plain HTML, CSS, and JavaScript for the current local-first implementation.
 - Start with local-only storage.
 - Start at a Saved Trips page when multiple trips exist.
 - Make Calendar View the default screen after opening a trip.
-- Support list, calendar, and day detail views from the beginning.
+- Support calendar, list, day detail, and controls views from the beginning.
 - Prioritize pre-trip planning over in-trip execution.
 - Use English UI by default, with mixed English/Chinese labels acceptable if they make personal use easier.
 - Keep import/sync/map features out of MVP, but design the data model so they can be added later.

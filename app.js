@@ -7,13 +7,27 @@ const ITEM_TYPES = [
   "Family Visit",
   "Meal",
   "Transit",
+  "Rest",
   "Reminder",
   "Custom",
 ];
 
+const DEFAULT_ITEM_TYPE_COLORS = {
+  Flight: "#b84a4a",
+  Hotel: "#2563eb",
+  Activity: "#2f6f73",
+  "Family Visit": "#4d7c8a",
+  Meal: "#7c3aed",
+  Transit: "#b88a2d",
+  Rest: "#16a34a",
+  Reminder: "#2f6f73",
+  Custom: "#2f6f73",
+};
+
 const STATUSES = ["Idea", "Planned", "Booked", "Confirmed", "Done", "Skipped"];
 
 const CURRENCIES = ["USD", "RMB"];
+const DEFAULT_USD_TO_RMB_RATE = 7.2;
 
 const STATUS_ICONS = {
   Idea: {
@@ -58,9 +72,13 @@ const state = {
   screen: "trips",
   view: "calendar",
   selectedDate: null,
+  warningsExpanded: false,
+  expandedTodoIds: [],
+  editingTodoId: null,
+  editingSubtodo: null,
   filters: {
-    type: "all",
-    status: "all",
+    type: ["all"],
+    status: ["all"],
     search: "",
   },
 };
@@ -100,6 +118,8 @@ function cacheElements() {
     "calendarView",
     "listView",
     "dayView",
+    "costsView",
+    "controlsView",
     "sidePanel",
     "itemDialog",
     "itemForm",
@@ -147,6 +167,7 @@ function cacheElements() {
   });
   els.tabs = Array.from(document.querySelectorAll(".tab-button"));
   els.views = Array.from(document.querySelectorAll(".view-panel"));
+  els.filterToggles = Array.from(document.querySelectorAll("[data-filter-toggle]"));
 }
 
 function populateSelects() {
@@ -192,6 +213,30 @@ function populatePeopleSelect(extraPeople = []) {
 function getSelectedPeople() {
   if (!els.itemPeople) return [];
   return Array.from(els.itemPeople.selectedOptions || []).map((option) => option.value);
+}
+
+function getSelectedFilterValues(select) {
+  const values = Array.from(select.selectedOptions || []).map((option) => option.value);
+  const specificValues = values.filter((value) => value !== "all");
+  return specificValues.length ? specificValues : ["all"];
+}
+
+function setSelectedFilterValues(select, values) {
+  const selectedValues = normalizeFilterValues(values);
+  Array.from(select.options).forEach((option) => {
+    option.selected = selectedValues.includes(option.value);
+  });
+}
+
+function normalizeFilterValues(values) {
+  const list = Array.isArray(values) ? values : [values];
+  const specificValues = list.filter((value) => value && value !== "all");
+  return specificValues.length ? specificValues : ["all"];
+}
+
+function filterAllows(selectedValues, value) {
+  const normalized = normalizeFilterValues(selectedValues);
+  return normalized.includes("all") || normalized.includes(value);
 }
 
 function setSelectedPeople(people) {
@@ -256,12 +301,18 @@ function bindEvents() {
     });
   });
 
+  els.filterToggles.forEach((button) => {
+    button.addEventListener("click", () => toggleFilterSelect(button));
+  });
+
   els.typeFilter.addEventListener("change", () => {
-    state.filters.type = els.typeFilter.value;
+    state.filters.type = getSelectedFilterValues(els.typeFilter);
+    setSelectedFilterValues(els.typeFilter, state.filters.type);
     render();
   });
   els.statusFilter.addEventListener("change", () => {
-    state.filters.status = els.statusFilter.value;
+    state.filters.status = getSelectedFilterValues(els.statusFilter);
+    setSelectedFilterValues(els.statusFilter, state.filters.status);
     render();
   });
   els.searchInput.addEventListener("input", () => {
@@ -278,6 +329,17 @@ function bindEvents() {
   els.printCalendarButton.addEventListener("click", printCalendar);
   els.exportButton.addEventListener("click", exportTrip);
   els.importInput.addEventListener("change", importTrip);
+}
+
+function toggleFilterSelect(button) {
+  const field = button.closest(".filter-select-field");
+  const select = document.getElementById(button.getAttribute("aria-controls"));
+  if (!field || !select) return;
+  const expanded = !field.classList.contains("expanded");
+  field.classList.toggle("expanded", expanded);
+  button.setAttribute("aria-expanded", String(expanded));
+  button.textContent = expanded ? "Collapse" : "Expand";
+  if (expanded) select.focus({ preventScroll: true });
 }
 
 function loadStore() {
@@ -331,9 +393,78 @@ function normalizeTrip(trip) {
     startDate: trip.startDate || "2026-05-12",
     endDate: trip.endDate || "2026-05-19",
     homeTimezone: normalizeTimezone(trip.homeTimezone),
+    itemTypeColors: normalizeItemTypeColors(trip.itemTypeColors),
+    costSettings: normalizeCostSettings(trip.costSettings),
     notes: trip.notes || "",
     items: Array.isArray(trip.items) ? trip.items.map(normalizeItem) : [],
+    todos: Array.isArray(trip.todos) ? trip.todos.map((todo, index) => normalizeTodo(todo, index)).filter((todo) => todo.text) : [],
   };
+}
+
+function normalizeTodo(todo, fallbackOrder = 0) {
+  const order = Number(todo.order);
+  const subtodos = Array.isArray(todo.subtodos)
+    ? todo.subtodos.map((subtodo, index) => normalizeSubtodo(subtodo, index)).filter((subtodo) => subtodo.text)
+    : [];
+  return {
+    id: todo.id || createId(),
+    text: String(todo.text || "").trim(),
+    done: subtodos.some((subtodo) => !subtodo.done) ? false : Boolean(todo.done),
+    order: Number.isFinite(order) ? order : fallbackOrder,
+    cost: normalizeCostValue(todo.cost),
+    currency: normalizeCurrency(todo.currency),
+    subtodos,
+    createdAt: todo.createdAt || new Date().toISOString(),
+    updatedAt: todo.updatedAt || new Date().toISOString(),
+  };
+}
+
+function normalizeSubtodo(subtodo, fallbackOrder = 0) {
+  const order = Number(subtodo.order);
+  return {
+    id: subtodo.id || createId(),
+    text: String(subtodo.text || "").trim(),
+    done: Boolean(subtodo.done),
+    order: Number.isFinite(order) ? order : fallbackOrder,
+    cost: normalizeCostValue(subtodo.cost),
+    currency: normalizeCurrency(subtodo.currency),
+    createdAt: subtodo.createdAt || new Date().toISOString(),
+    updatedAt: subtodo.updatedAt || new Date().toISOString(),
+  };
+}
+
+function normalizeItemTypeColors(colors = {}) {
+  const source = colors && typeof colors === "object" ? colors : {};
+  return ITEM_TYPES.reduce((normalized, type) => {
+    normalized[type] = normalizeHexColor(source[type]) || getDefaultItemTypeColor(type);
+    return normalized;
+  }, {});
+}
+
+function normalizeHexColor(value) {
+  const color = String(value || "").trim();
+  const shortMatch = color.match(/^#?([0-9a-f]{3})$/i);
+  if (shortMatch) {
+    return `#${shortMatch[1]
+      .split("")
+      .map((part) => part + part)
+      .join("")}`.toLowerCase();
+  }
+  const longMatch = color.match(/^#?([0-9a-f]{6})$/i);
+  if (longMatch) return `#${longMatch[1]}`.toLowerCase();
+  return "";
+}
+
+function getDefaultItemTypeColor(type) {
+  return DEFAULT_ITEM_TYPE_COLORS[type] || DEFAULT_ITEM_TYPE_COLORS.Custom;
+}
+
+function getItemTypeColor(type) {
+  return normalizeHexColor(state.trip?.itemTypeColors?.[type]) || getDefaultItemTypeColor(type);
+}
+
+function renderItemTypeStyle(type) {
+  return `style="--item-type-color: ${escapeHtml(getItemTypeColor(type))};"`;
 }
 
 function normalizeItem(item) {
@@ -379,7 +510,10 @@ function createSampleTrip() {
     startDate: "2026-05-12",
     endDate: "2026-05-19",
     homeTimezone: DEFAULT_TIMEZONE,
+    itemTypeColors: normalizeItemTypeColors(),
+    costSettings: normalizeCostSettings(),
     notes: "",
+    todos: [],
     items: [
       normalizeItem({
         type: "Flight",
@@ -400,6 +534,7 @@ function createSampleTrip() {
       sampleItem("Transit", "Shinkansen to Kyoto", "2026-05-16T11:30", "2026-05-16T14:00", "Kyoto", "Tokyo Station to Kyoto Station", "Booked", "JR-912", []),
       sampleItem("Hotel", "Kyoto ryokan", "2026-05-16T15:30", "2026-05-19T10:00", "Kyoto", "Gion", "Confirmed", "RYK-1190", []),
       sampleItem("Activity", "Fushimi Inari early walk", "2026-05-17T08:00", "2026-05-17T10:30", "Kyoto", "Fushimi Inari", "Planned", "", []),
+      sampleItem("Rest", "Slow morning", "2026-05-18T09:00", "2026-05-18T10:30", "Kyoto", "Ryokan", "Planned", "", []),
       sampleItem("Reminder", "Buy gifts for family", "2026-05-18T15:00", "2026-05-18T16:00", "Kyoto", "Nishiki Market", "Idea", "", []),
     ],
   };
@@ -437,6 +572,8 @@ function render() {
     renderCalendar();
     renderList();
     renderDayView();
+    renderCosts();
+    renderControls();
     renderSidePanel();
   }
   saveStore();
@@ -499,7 +636,7 @@ function openTrip(id) {
   state.selectedDate = state.trip.startDate;
   state.view = "calendar";
   state.screen = "workspace";
-  state.filters = { type: "all", status: "all", search: "" };
+  state.filters = { type: ["all"], status: ["all"], search: "" };
   render();
 }
 
@@ -521,9 +658,12 @@ function createNewTrip() {
 function resetTrip(id) {
   const trip = state.store.trips.find((entry) => entry.id === id);
   if (!trip) return;
-  const ok = window.confirm(`Clear all saved itinerary data for "${trip.title}"? The trip shell will stay in your saved trips list.`);
-  if (!ok) return;
+  const confirmation = window.prompt(
+    `Reset "${trip.title}"?\n\nThis will permanently clear all itinerary items, checklist todos, and trip notes. The trip shell and dates will stay, but the removed data cannot be recovered.\n\nType RESET to continue.`,
+  );
+  if (confirmation !== "RESET") return;
   trip.items = [];
+  trip.todos = [];
   trip.notes = "";
   trip.updatedAt = new Date().toISOString();
   if (state.store.activeTripId === id) {
@@ -536,8 +676,10 @@ function resetTrip(id) {
 function deleteTrip(id) {
   const trip = state.store.trips.find((entry) => entry.id === id);
   if (!trip) return;
-  const ok = window.confirm(`Delete "${trip.title}" from saved trips?`);
-  if (!ok) return;
+  const confirmation = window.prompt(
+    `Delete "${trip.title}"?\n\nThis will permanently remove the entire trip from saved trips, including itinerary items, checklist todos, notes, and settings. This cannot be recovered.\n\nType DELETE to continue.`,
+  );
+  if (confirmation !== "DELETE") return;
   state.store.trips = state.store.trips.filter((entry) => entry.id !== id);
   if (!state.store.trips.length) {
     const newTrip = normalizeTrip({
@@ -561,8 +703,10 @@ function renderTripSettings() {
   els.tripStart.value = state.trip.startDate;
   els.tripEnd.value = state.trip.endDate;
   els.tripTimezone.value = normalizeTimezone(state.trip.homeTimezone);
-  els.typeFilter.value = state.filters.type;
-  els.statusFilter.value = state.filters.status;
+  state.filters.type = normalizeFilterValues(state.filters.type);
+  state.filters.status = normalizeFilterValues(state.filters.status);
+  setSelectedFilterValues(els.typeFilter, state.filters.type);
+  setSelectedFilterValues(els.statusFilter, state.filters.status);
   els.searchInput.value = state.filters.search;
 }
 
@@ -572,14 +716,8 @@ function renderTabs() {
 }
 
 function renderAlerts() {
-  const warnings = getWarnings();
+  els.alerts.hidden = true;
   els.alerts.innerHTML = "";
-  warnings.slice(0, 4).forEach((warning) => {
-    const alert = document.createElement("div");
-    alert.className = "alert";
-    alert.innerHTML = `<strong>${escapeHtml(warning.type)}</strong><span>${escapeHtml(warning.message)}</span>`;
-    els.alerts.append(alert);
-  });
 }
 
 function renderCalendar() {
@@ -597,7 +735,7 @@ function renderCalendar() {
     const itemMarkup = items
       .map(
         (item) => `
-          <button class="item-pill" data-action="edit" data-id="${item.id}" data-type="${escapeHtml(item.type)}" type="button">
+          <button class="item-pill" ${renderItemTypeStyle(item.type)} data-action="edit" data-id="${item.id}" data-type="${escapeHtml(item.type)}" type="button">
             ${renderStatusIcon(item.status)}
             <span class="item-time">${escapeHtml(formatItemTime(item, { showTimezone }))}</span>
             <span class="item-title">${escapeHtml(item.title)}</span>
@@ -703,45 +841,416 @@ function renderDayView() {
   bindDynamicActions(els.dayView);
 }
 
+function renderCosts() {
+  const travelCosts = getTravelCostEntries();
+  const todoCosts = getTodoCostEntries();
+  const allCosts = [...travelCosts, ...todoCosts];
+  const costSettings = getCostSettings();
+  els.costsView.innerHTML = `
+    <section class="section-block costs-panel">
+      <div class="section-header">
+        <div>
+          <p class="eyebrow">Costs</p>
+          <h2>Trip cost tracker</h2>
+        </div>
+      </div>
+      <div class="cost-controls">
+        <div class="field">
+          <label for="costDisplayCurrency">Display currency</label>
+          <select id="costDisplayCurrency">
+            ${renderCurrencyOptions(costSettings.displayCurrency)}
+          </select>
+        </div>
+        <div class="field">
+          <label for="usdToRmbRate">Exchange rate</label>
+          <input id="usdToRmbRate" type="number" min="0.0001" step="0.0001" value="${escapeHtml(costSettings.usdToRmbRate)}" />
+          <p class="field-hint">1 USD = RMB</p>
+        </div>
+      </div>
+      <div class="cost-summary-grid">
+        ${renderCostSummaryCard("Total tracked", allCosts, costSettings, "total")}
+        ${renderCostSummaryCard("Travel plans", travelCosts, costSettings, "travel")}
+        ${renderCostSummaryCard("Checklist todos", todoCosts, costSettings, "todo")}
+      </div>
+      <div class="cost-breakdown-grid">
+        ${renderCostBreakdown("Travel costs", travelCosts, "Costs entered on calendar and day detail itinerary items.", costSettings, "travel")}
+        ${renderCostBreakdown("Checklist costs", todoCosts, "Costs entered on planning todos and sub todos.", costSettings, "todo")}
+      </div>
+    </section>
+  `;
+  bindCostControls();
+}
+
+function renderCostSummaryCard(title, entries, costSettings, variant = "") {
+  const totals = formatCostTotals(entries, costSettings);
+  return `
+    <article class="cost-summary-card ${variant ? `cost-summary-${variant}` : ""}">
+      <span>${escapeHtml(title)}</span>
+      <strong>${escapeHtml(totals || "No costs yet")}</strong>
+      <small>${entries.length} entr${entries.length === 1 ? "y" : "ies"}</small>
+    </article>
+  `;
+}
+
+function renderCostBreakdown(title, entries, description, costSettings, variant = "") {
+  return `
+    <section class="cost-breakdown ${variant ? `cost-breakdown-${variant}` : ""}">
+      <div class="section-header">
+        <div>
+          <h3>${escapeHtml(title)}</h3>
+          <p class="muted">${escapeHtml(description)}</p>
+        </div>
+        <span class="badge">${escapeHtml(formatCostTotals(entries, costSettings) || "No costs")}</span>
+      </div>
+      ${
+        entries.length
+          ? `<div class="cost-entry-list">${entries.map((entry) => renderCostEntry(entry, costSettings)).join("")}</div>`
+          : `<div class="empty-state compact">No tracked costs yet.</div>`
+      }
+    </section>
+  `;
+}
+
+function renderCostEntry(entry, costSettings) {
+  const originalCost = formatCostAmount(entry.cost, entry.currency);
+  const convertedCost = formatCostAmount(convertCost(entry.cost, entry.currency, costSettings.displayCurrency, costSettings), costSettings.displayCurrency);
+  const meta = normalizeCurrency(entry.currency) === costSettings.displayCurrency ? entry.meta : `${entry.meta} - Original ${originalCost}`;
+  return `
+    <div class="cost-entry">
+      <div>
+        <strong>${escapeHtml(entry.title)}</strong>
+        <span>${escapeHtml(meta)}</span>
+      </div>
+      <span class="cost-amount">${escapeHtml(convertedCost)}</span>
+    </div>
+  `;
+}
+
+function bindCostControls() {
+  const currencySelect = els.costsView.querySelector("#costDisplayCurrency");
+  const rateInput = els.costsView.querySelector("#usdToRmbRate");
+  currencySelect?.addEventListener("change", updateCostSettingsFromControls);
+  rateInput?.addEventListener("change", updateCostSettingsFromControls);
+}
+
+function updateCostSettingsFromControls() {
+  const currencySelect = els.costsView.querySelector("#costDisplayCurrency");
+  const rateInput = els.costsView.querySelector("#usdToRmbRate");
+  state.trip.costSettings = normalizeCostSettings({
+    displayCurrency: currencySelect?.value,
+    usdToRmbRate: rateInput?.value,
+  });
+  state.trip.updatedAt = new Date().toISOString();
+  render();
+}
+
+function renderControls() {
+  const rows = ITEM_TYPES.map((type) => {
+    const color = getItemTypeColor(type);
+    const defaultColor = getDefaultItemTypeColor(type);
+    const itemCount = state.trip.items.filter((item) => item.type === type).length;
+    return `
+      <div class="type-color-row">
+        <div class="type-color-label">
+          <span class="type-color-swatch" style="background: ${escapeHtml(color)};"></span>
+          <div>
+            <strong>${escapeHtml(type)}</strong>
+            <span>${itemCount} item${itemCount === 1 ? "" : "s"}</span>
+          </div>
+        </div>
+        <div class="type-color-controls">
+          <input data-color-type="${escapeHtml(type)}" type="color" value="${escapeHtml(color)}" aria-label="${escapeHtml(`${type} color`)}" />
+          <input class="color-code-input" data-color-code-type="${escapeHtml(type)}" type="text" value="${escapeHtml(color.toUpperCase())}" aria-label="${escapeHtml(`${type} hex color`)}" spellcheck="false" />
+          <button class="secondary-button" data-reset-color="${escapeHtml(type)}" type="button" ${color === defaultColor ? "disabled" : ""}>Reset</button>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  els.controlsView.innerHTML = `
+    <section class="section-block controls-panel">
+      <div class="section-header">
+        <div>
+          <p class="eyebrow">Controls</p>
+          <h2>Item type colors</h2>
+        </div>
+        <button class="secondary-button" id="resetAllColorsButton" type="button">Reset all colors</button>
+      </div>
+      <p class="muted">Pick the stripe color used for each item type on the calendar, day detail, and selected day panels.</p>
+      <div class="type-color-grid">${rows}</div>
+    </section>
+  `;
+
+  els.controlsView.querySelectorAll("[data-color-type]").forEach((input) => {
+    input.addEventListener("input", () => updateItemTypeColor(input.dataset.colorType, input.value, { renderControls: false }));
+    input.addEventListener("change", () => updateItemTypeColor(input.dataset.colorType, input.value));
+  });
+  els.controlsView.querySelectorAll("[data-color-code-type]").forEach((input) => {
+    input.addEventListener("input", () => updateItemTypeColorFromCode(input, { renderControls: false }));
+    input.addEventListener("change", () => updateItemTypeColorFromCode(input));
+  });
+  els.controlsView.querySelectorAll("[data-reset-color]").forEach((button) => {
+    button.addEventListener("click", () => updateItemTypeColor(button.dataset.resetColor, getDefaultItemTypeColor(button.dataset.resetColor)));
+  });
+  els.controlsView.querySelector("#resetAllColorsButton").addEventListener("click", resetItemTypeColors);
+}
+
+function updateItemTypeColorFromCode(input, options = {}) {
+  const color = normalizeHexColor(input.value);
+  input.setCustomValidity(color ? "" : "Use a hex color like #FD151B.");
+  if (!color) {
+    if (options.renderControls !== false) input.reportValidity();
+    return;
+  }
+  updateItemTypeColor(input.dataset.colorCodeType, color, options);
+}
+
+function updateItemTypeColor(type, value, options = {}) {
+  if (!ITEM_TYPES.includes(type)) return;
+  const color = normalizeHexColor(value) || getDefaultItemTypeColor(type);
+  state.trip.itemTypeColors = normalizeItemTypeColors({
+    ...state.trip.itemTypeColors,
+    [type]: color,
+  });
+  state.trip.updatedAt = new Date().toISOString();
+  applyItemTypeColorToRenderedItems(type, color);
+  updateColorControlReadout(type, color);
+  saveStore();
+  if (options.renderControls !== false) render();
+}
+
+function resetItemTypeColors() {
+  state.trip.itemTypeColors = normalizeItemTypeColors();
+  state.trip.updatedAt = new Date().toISOString();
+  render();
+}
+
+function applyItemTypeColorToRenderedItems(type, color) {
+  document.querySelectorAll(".item-pill[data-type], .timeline-card[data-type]").forEach((element) => {
+    if (element.dataset.type === type) element.style.setProperty("--item-type-color", color);
+  });
+}
+
+function updateColorControlReadout(type, color) {
+  els.controlsView.querySelectorAll("[data-color-type]").forEach((input) => {
+    if (input.dataset.colorType !== type) return;
+    const row = input.closest(".type-color-row");
+    input.value = color;
+    row?.querySelector(".type-color-swatch")?.style.setProperty("background", color);
+    const codeInput = row?.querySelector("[data-color-code-type]");
+    if (codeInput) {
+      codeInput.value = color.toUpperCase();
+      codeInput.setCustomValidity("");
+    }
+    const resetButton = row?.querySelector("[data-reset-color]");
+    if (resetButton) resetButton.disabled = color === getDefaultItemTypeColor(type);
+  });
+}
+
 function renderSidePanel() {
   const date = state.selectedDate || state.trip.startDate;
   const items = getItemsForDate(date);
+  const todos = getTripTodos();
+  const completedTodos = todos.filter((todo) => todo.done).length;
   const showTimezone = shouldShowTimezoneForItems(items);
   const city = getPrimaryCity(date);
-  const warnings = getWarnings().filter((warning) => warning.date === date);
+  const allWarnings = getWarnings();
+  const warnings = allWarnings.filter((warning) => warning.date === date);
   els.sidePanel.innerHTML = `
-    <p class="eyebrow">Selected day</p>
-    <h2>${escapeHtml(formatDateLong(date))}</h2>
-    <p class="muted">${escapeHtml(city || "No primary city yet")}</p>
-    <div class="status-line">
-      <span class="badge">${items.length} item${items.length === 1 ? "" : "s"}</span>
-      ${warnings.length ? `<span class="badge warning">${warnings.length} warning${warnings.length === 1 ? "" : "s"}</span>` : ""}
-    </div>
-    <div class="day-actions">
-      <button class="primary-button" data-action="add-on-day" data-date="${date}" type="button">Add to this day</button>
-      <button class="secondary-button" data-action="go-day" type="button">Review day</button>
-    </div>
-    <div class="item-stack">
-      ${
-        items.length
-          ? items
-              .slice(0, 6)
-              .map(
-                (item) => `
-                  <button class="item-pill" data-action="edit" data-id="${item.id}" data-type="${escapeHtml(item.type)}" type="button">
-                    ${renderStatusIcon(item.status)}
-                    <span class="item-time">${escapeHtml(formatItemTime(item, { showTimezone }))}</span>
-                    <span class="item-title">${escapeHtml(item.title)}</span>
-                    <span class="item-meta">${escapeHtml(item.status)}</span>
-                  </button>
-                `,
-              )
-              .join("")
-          : `<div class="empty-state">No plans on this date.</div>`
-      }
-    </div>
+    <article class="selected-day-panel">
+      <p class="eyebrow">Selected day</p>
+      <h2>${escapeHtml(formatDateLong(date))}</h2>
+      <p class="muted">${escapeHtml(city || "No primary city yet")}</p>
+      <div class="status-line">
+        <span class="badge">${items.length} item${items.length === 1 ? "" : "s"}</span>
+        ${warnings.length ? `<span class="badge warning">${warnings.length} warning${warnings.length === 1 ? "" : "s"}</span>` : ""}
+      </div>
+      <div class="day-actions">
+        <button class="primary-button" data-action="add-on-day" data-date="${date}" type="button">Add to this day</button>
+        <button class="secondary-button" data-action="go-day" type="button">Review day</button>
+      </div>
+      <div class="item-stack">
+        ${
+          items.length
+            ? items
+                .slice(0, 6)
+                .map(
+                  (item) => `
+                    <button class="item-pill" ${renderItemTypeStyle(item.type)} data-action="edit" data-id="${item.id}" data-type="${escapeHtml(item.type)}" type="button">
+                      ${renderStatusIcon(item.status)}
+                      <span class="item-time">${escapeHtml(formatItemTime(item, { showTimezone }))}</span>
+                      <span class="item-title">${escapeHtml(item.title)}</span>
+                      <span class="item-meta">${escapeHtml(item.status)}</span>
+                    </button>
+                  `,
+                )
+                .join("")
+            : `<div class="empty-state">No plans on this date.</div>`
+        }
+      </div>
+    </article>
+    <section class="todo-panel" aria-label="Planning todos">
+      <div class="todo-header">
+        <div>
+          <p class="eyebrow">Planning todos</p>
+          <h3>Checklist</h3>
+        </div>
+        <span class="muted">${completedTodos}/${todos.length} done</span>
+      </div>
+      <form class="todo-form" data-todo-form>
+        <input name="todoText" type="text" placeholder="Add a planning todo" aria-label="New planning todo" />
+        <button class="secondary-button" type="submit">Add</button>
+        <div class="todo-cost-row">
+          <input name="todoCost" type="number" min="0" step="0.01" placeholder="Cost" aria-label="Todo cost" />
+          <select name="todoCurrency" aria-label="Todo cost currency">${renderCurrencyOptions()}</select>
+        </div>
+      </form>
+      <div class="todo-list">
+        ${
+          todos.length
+            ? todos.map(renderTodoItem).join("")
+            : `<div class="empty-state compact">No todos yet.</div>`
+        }
+      </div>
+    </section>
+    <details class="warnings-panel" ${state.warningsExpanded ? "open" : ""}>
+      <summary>
+        <span>
+          <span class="eyebrow">Warnings</span>
+          <strong>Planning checks</strong>
+        </span>
+        <span class="badge warning">${allWarnings.length} warning${allWarnings.length === 1 ? "" : "s"}</span>
+      </summary>
+      <div class="warning-list">
+        ${
+          allWarnings.length
+            ? allWarnings.map(renderWarningItem).join("")
+            : `<div class="empty-state compact">No warnings right now.</div>`
+        }
+      </div>
+    </details>
   `;
   bindDynamicActions(els.sidePanel);
+  bindTodoActions(els.sidePanel);
+  bindWarningsPanel(els.sidePanel);
+}
+
+function renderWarningItem(warning) {
+  return `
+    <div class="warning-item">
+      <div>
+        <strong>${escapeHtml(warning.type)}</strong>
+        <span>${escapeHtml(warning.date ? formatDateShort(warning.date) : "No date")}</span>
+      </div>
+      <p>${escapeHtml(warning.message)}</p>
+    </div>
+  `;
+}
+
+function renderTodoItem(todo) {
+  const subtodos = getSubtodos(todo);
+  const isExpanded = isTodoExpanded(todo.id);
+  const isEditing = state.editingTodoId === todo.id;
+  const hasIncompleteSubtodos = subtodos.some((subtodo) => !subtodo.done);
+  const canCheckParent = !subtodos.length || !hasIncompleteSubtodos;
+  return `
+    <div class="todo-group ${isExpanded ? "expanded" : ""}" data-todo-id="${todo.id}">
+      <div class="todo-item ${todo.done ? "done" : ""} ${isEditing ? "editing" : ""}" draggable="true" data-todo-id="${todo.id}">
+        <button class="todo-expand-button" data-todo-action="expand" data-id="${todo.id}" type="button" aria-expanded="${isExpanded}" aria-label="${isExpanded ? "Collapse subtodos" : "Expand subtodos"}">
+          ${isExpanded ? "-" : "+"}
+        </button>
+        <span class="todo-drag-handle" aria-hidden="true">Drag</span>
+        ${
+          isEditing
+            ? renderTodoEditForm(todo)
+            : `
+              <label title="${canCheckParent ? "" : "Complete all subtodos before checking this off."}">
+                <input data-todo-action="toggle" data-id="${todo.id}" type="checkbox" ${todo.done ? "checked" : ""} ${canCheckParent ? "" : "disabled"} />
+                <button class="todo-text-button" data-todo-action="edit" data-id="${todo.id}" type="button">${escapeHtml(todo.text)}</button>
+              </label>
+            `
+        }
+        ${!isEditing && todo.cost ? `<span class="todo-cost-badge">${escapeHtml(formatCostAmount(todo.cost, todo.currency))}</span>` : ""}
+        ${!isEditing && subtodos.length ? `<span class="subtodo-count">${subtodos.length} sub</span>` : ""}
+        ${!isEditing ? `<button class="icon-button todo-delete-button" data-todo-action="delete" data-id="${todo.id}" type="button" aria-label="Delete todo">x</button>` : ""}
+      </div>
+      <div class="subtodo-panel" ${isExpanded ? "" : "hidden"}>
+        <form class="subtodo-form" data-subtodo-form data-parent-id="${todo.id}">
+          <input name="subtodoText" type="text" placeholder="Add a sub todo" aria-label="New sub todo" />
+          <button class="secondary-button" type="submit">Add</button>
+          <div class="todo-cost-row">
+            <input name="subtodoCost" type="number" min="0" step="0.01" placeholder="Cost" aria-label="Sub todo cost" />
+            <select name="subtodoCurrency" aria-label="Sub todo cost currency">${renderCurrencyOptions()}</select>
+          </div>
+        </form>
+        <div class="subtodo-list">
+          ${
+            subtodos.length
+              ? subtodos.map((subtodo) => renderSubtodoItem(todo.id, subtodo)).join("")
+              : `<div class="empty-state compact">No sub todos yet.</div>`
+          }
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderSubtodoItem(parentId, subtodo) {
+  const isEditing = state.editingSubtodo?.parentId === parentId && state.editingSubtodo?.id === subtodo.id;
+  return `
+    <div class="subtodo-item ${subtodo.done ? "done" : ""} ${isEditing ? "editing" : ""}" draggable="true" data-parent-id="${parentId}" data-subtodo-id="${subtodo.id}">
+      <span class="todo-drag-handle" aria-hidden="true">Drag</span>
+      ${
+        isEditing
+          ? renderSubtodoEditForm(parentId, subtodo)
+          : `
+            <label>
+              <input data-subtodo-action="toggle" data-parent-id="${parentId}" data-id="${subtodo.id}" type="checkbox" ${subtodo.done ? "checked" : ""} />
+              <button class="todo-text-button" data-subtodo-action="edit" data-parent-id="${parentId}" data-id="${subtodo.id}" type="button">${escapeHtml(subtodo.text)}</button>
+            </label>
+          `
+      }
+      ${!isEditing && subtodo.cost ? `<span class="todo-cost-badge">${escapeHtml(formatCostAmount(subtodo.cost, subtodo.currency))}</span>` : ""}
+      ${!isEditing ? `<button class="icon-button todo-delete-button" data-subtodo-action="delete" data-parent-id="${parentId}" data-id="${subtodo.id}" type="button" aria-label="Delete sub todo">x</button>` : ""}
+    </div>
+  `;
+}
+
+function renderTodoEditForm(todo) {
+  return `
+    <form class="todo-edit-form" data-todo-edit-form data-id="${todo.id}">
+      <input name="todoText" type="text" value="${escapeHtml(todo.text)}" aria-label="Edit todo text" />
+      <div class="todo-cost-row">
+        <input name="todoCost" type="number" min="0" step="0.01" value="${escapeHtml(todo.cost || "")}" placeholder="Cost" aria-label="Todo cost" />
+        <select name="todoCurrency" aria-label="Todo cost currency">${renderCurrencyOptions(todo.currency)}</select>
+      </div>
+      <span class="todo-edit-actions">
+        <button class="secondary-button compact-button" type="submit">Save</button>
+        <button class="secondary-button compact-button" data-todo-action="cancel-edit" type="button">Cancel</button>
+      </span>
+    </form>
+  `;
+}
+
+function renderSubtodoEditForm(parentId, subtodo) {
+  return `
+    <form class="todo-edit-form" data-subtodo-edit-form data-parent-id="${parentId}" data-id="${subtodo.id}">
+      <input name="subtodoText" type="text" value="${escapeHtml(subtodo.text)}" aria-label="Edit sub todo text" />
+      <div class="todo-cost-row">
+        <input name="subtodoCost" type="number" min="0" step="0.01" value="${escapeHtml(subtodo.cost || "")}" placeholder="Cost" aria-label="Sub todo cost" />
+        <select name="subtodoCurrency" aria-label="Sub todo cost currency">${renderCurrencyOptions(subtodo.currency)}</select>
+      </div>
+      <span class="todo-edit-actions">
+        <button class="secondary-button compact-button" type="submit">Save</button>
+        <button class="secondary-button compact-button" data-subtodo-action="cancel-edit" type="button">Cancel</button>
+      </span>
+    </form>
+  `;
+}
+
+function renderCurrencyOptions(selected = "USD") {
+  const normalized = normalizeCurrency(selected);
+  return CURRENCIES.map((currency) => `<option value="${currency}" ${currency === normalized ? "selected" : ""}>${currency}</option>`).join("");
 }
 
 function renderTimelineRow(item, options = {}) {
@@ -749,7 +1258,7 @@ function renderTimelineRow(item, options = {}) {
   return `
     <div class="timeline-row">
       <div class="timeline-time">${escapeHtml(formatItemTime(item, options))}</div>
-      <button class="timeline-card ${isWarning ? "warning-border" : ""}" data-action="edit" data-id="${item.id}" data-type="${escapeHtml(item.type)}" type="button">
+      <button class="timeline-card ${isWarning ? "warning-border" : ""}" ${renderItemTypeStyle(item.type)} data-action="edit" data-id="${item.id}" data-type="${escapeHtml(item.type)}" type="button">
         ${renderStatusIcon(item.status)}
         <strong>${escapeHtml(item.title)}</strong>
         <span class="item-meta">${escapeHtml(getItemMeta(item))}</span>
@@ -799,6 +1308,172 @@ function bindDynamicActions(container) {
         render();
       }
     });
+  });
+}
+
+function bindTodoActions(container) {
+  const form = container.querySelector("[data-todo-form]");
+  form?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const input = form.elements.todoText;
+    addTodo(input.value, form.elements.todoCost.value, form.elements.todoCurrency.value);
+  });
+
+  container.querySelectorAll("[data-todo-action='toggle']").forEach((checkbox) => {
+    checkbox.addEventListener("change", () => toggleTodo(checkbox.dataset.id, checkbox.checked));
+  });
+
+  container.querySelectorAll("[data-todo-action='delete']").forEach((button) => {
+    button.addEventListener("click", () => deleteTodo(button.dataset.id));
+  });
+
+  container.querySelectorAll("[data-todo-action='edit']").forEach((button) => {
+    button.addEventListener("click", () => startTodoEdit(button.dataset.id));
+  });
+
+  container.querySelectorAll("[data-todo-action='cancel-edit']").forEach((button) => {
+    button.addEventListener("click", () => cancelTodoEdit());
+  });
+
+  container.querySelectorAll("[data-todo-edit-form]").forEach((form) => {
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      updateTodoText(form.dataset.id, form.elements.todoText.value, form.elements.todoCost.value, form.elements.todoCurrency.value);
+    });
+  });
+
+  container.querySelectorAll("[data-todo-action='expand']").forEach((button) => {
+    button.addEventListener("click", () => toggleTodoExpanded(button.dataset.id));
+  });
+
+  container.querySelectorAll("[data-subtodo-form]").forEach((form) => {
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      addSubtodo(form.dataset.parentId, form.elements.subtodoText.value, form.elements.subtodoCost.value, form.elements.subtodoCurrency.value);
+    });
+  });
+
+  container.querySelectorAll("[data-subtodo-action='toggle']").forEach((checkbox) => {
+    checkbox.addEventListener("change", () => toggleSubtodo(checkbox.dataset.parentId, checkbox.dataset.id, checkbox.checked));
+  });
+
+  container.querySelectorAll("[data-subtodo-action='delete']").forEach((button) => {
+    button.addEventListener("click", () => deleteSubtodo(button.dataset.parentId, button.dataset.id));
+  });
+
+  container.querySelectorAll("[data-subtodo-action='edit']").forEach((button) => {
+    button.addEventListener("click", () => startSubtodoEdit(button.dataset.parentId, button.dataset.id));
+  });
+
+  container.querySelectorAll("[data-subtodo-action='cancel-edit']").forEach((button) => {
+    button.addEventListener("click", () => cancelTodoEdit());
+  });
+
+  container.querySelectorAll("[data-subtodo-edit-form]").forEach((form) => {
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      updateSubtodoText(form.dataset.parentId, form.dataset.id, form.elements.subtodoText.value, form.elements.subtodoCost.value, form.elements.subtodoCurrency.value);
+    });
+  });
+
+  container.querySelectorAll(".todo-item[data-todo-id]").forEach((item) => {
+    item.addEventListener("click", (event) => {
+      if (event.target.closest("button, input, label, form, .todo-drag-handle")) return;
+      toggleTodoExpanded(item.dataset.todoId);
+    });
+    item.addEventListener("dragstart", (event) => {
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/plain", item.dataset.todoId);
+      item.classList.add("dragging");
+    });
+    item.addEventListener("dragend", () => {
+      item.classList.remove("dragging", "drag-over-before", "drag-over-after");
+      container.querySelectorAll(".todo-item").forEach((row) => row.classList.remove("drag-over-before", "drag-over-after"));
+    });
+    item.addEventListener("dragover", (event) => {
+      event.preventDefault();
+      const position = getTodoDropPosition(event, item);
+      item.classList.toggle("drag-over-before", position === "before");
+      item.classList.toggle("drag-over-after", position === "after");
+      event.dataTransfer.dropEffect = "move";
+    });
+    item.addEventListener("dragleave", () => item.classList.remove("drag-over-before", "drag-over-after"));
+    item.addEventListener("drop", (event) => {
+      event.preventDefault();
+      const position = getTodoDropPosition(event, item);
+      item.classList.remove("drag-over-before", "drag-over-after");
+      reorderTodo(event.dataTransfer.getData("text/plain"), item.dataset.todoId, position);
+    });
+  });
+
+  container.querySelectorAll(".subtodo-item[data-subtodo-id]").forEach((item) => {
+    item.addEventListener("dragstart", (event) => {
+      event.stopPropagation();
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/plain", item.dataset.subtodoId);
+      item.classList.add("dragging");
+    });
+    item.addEventListener("dragend", () => {
+      item.classList.remove("dragging", "drag-over-before", "drag-over-after");
+      container.querySelectorAll(".subtodo-item").forEach((row) => row.classList.remove("drag-over-before", "drag-over-after"));
+    });
+    item.addEventListener("dragover", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const position = getTodoDropPosition(event, item);
+      item.classList.toggle("drag-over-before", position === "before");
+      item.classList.toggle("drag-over-after", position === "after");
+      event.dataTransfer.dropEffect = "move";
+    });
+    item.addEventListener("dragleave", () => item.classList.remove("drag-over-before", "drag-over-after"));
+    item.addEventListener("drop", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const position = getTodoDropPosition(event, item);
+      item.classList.remove("drag-over-before", "drag-over-after");
+      reorderSubtodo(item.dataset.parentId, event.dataTransfer.getData("text/plain"), item.dataset.subtodoId, position);
+    });
+  });
+}
+
+function getTodoDropPosition(event, item) {
+  const rect = item.getBoundingClientRect();
+  return event.clientY > rect.top + rect.height / 2 ? "after" : "before";
+}
+
+function isTodoExpanded(id) {
+  return state.expandedTodoIds.includes(id);
+}
+
+function toggleTodoExpanded(id, expanded = !isTodoExpanded(id)) {
+  state.expandedTodoIds = expanded
+    ? [...new Set([...state.expandedTodoIds, id])]
+    : state.expandedTodoIds.filter((todoId) => todoId !== id);
+  render();
+}
+
+function startTodoEdit(id) {
+  state.editingTodoId = id;
+  state.editingSubtodo = null;
+  render();
+}
+
+function startSubtodoEdit(parentId, id) {
+  state.editingTodoId = null;
+  state.editingSubtodo = { parentId, id };
+  render();
+}
+
+function cancelTodoEdit() {
+  state.editingTodoId = null;
+  state.editingSubtodo = null;
+  render();
+}
+
+function bindWarningsPanel(container) {
+  const details = container.querySelector(".warnings-panel");
+  details?.addEventListener("toggle", () => {
+    state.warningsExpanded = details.open;
   });
 }
 
@@ -1039,6 +1714,282 @@ function getItemsForDate(date) {
     .sort(compareItems);
 }
 
+function getTripTodos() {
+  return (state.trip.todos || [])
+    .slice()
+    .sort((a, b) => a.order - b.order || a.createdAt.localeCompare(b.createdAt));
+}
+
+function getSubtodos(todo) {
+  return (todo.subtodos || [])
+    .slice()
+    .sort((a, b) => a.order - b.order || a.createdAt.localeCompare(b.createdAt));
+}
+
+function getTravelCostEntries() {
+  return state.trip.items
+    .filter((item) => hasCost(item.cost))
+    .sort(compareItems)
+    .map((item) => ({
+      title: item.title,
+      meta: [item.type, getDatePart(item.startDateTime) ? formatDateShort(getDatePart(item.startDateTime)) : "Unscheduled", item.city].filter(Boolean).join(" - "),
+      cost: item.cost,
+      currency: normalizeCurrency(item.currency),
+      source: "travel",
+    }));
+}
+
+function getTodoCostEntries() {
+  return getTripTodos().flatMap((todo) => {
+    const entries = [];
+    if (hasCost(todo.cost)) {
+      entries.push({
+        title: todo.text,
+        meta: "Checklist todo",
+        cost: todo.cost,
+        currency: normalizeCurrency(todo.currency),
+        source: "todo",
+      });
+    }
+    getSubtodos(todo).forEach((subtodo) => {
+      if (!hasCost(subtodo.cost)) return;
+      entries.push({
+        title: subtodo.text,
+        meta: `Sub todo - ${todo.text}`,
+        cost: subtodo.cost,
+        currency: normalizeCurrency(subtodo.currency),
+        source: "subtodo",
+      });
+    });
+    return entries;
+  });
+}
+
+function formatCostTotals(entries, costSettings = getCostSettings()) {
+  if (!entries.length) return "";
+  const total = entries.reduce((sum, entry) => {
+    return sum + convertCost(entry.cost, entry.currency, costSettings.displayCurrency, costSettings);
+  }, 0);
+  return formatCostAmount(total, costSettings.displayCurrency);
+}
+
+function hasCost(value) {
+  return normalizeCostValue(value) !== "";
+}
+
+function getCostSettings() {
+  state.trip.costSettings = normalizeCostSettings(state.trip.costSettings);
+  return state.trip.costSettings;
+}
+
+function convertCost(cost, fromCurrency, toCurrency, costSettings = getCostSettings()) {
+  const amount = Number(cost || 0);
+  const from = normalizeCurrency(fromCurrency);
+  const to = normalizeCurrency(toCurrency);
+  if (from === to) return amount;
+  if (from === "USD" && to === "RMB") return amount * costSettings.usdToRmbRate;
+  if (from === "RMB" && to === "USD") return amount / costSettings.usdToRmbRate;
+  return amount;
+}
+
+function addTodo(text, cost = "", currency = "USD") {
+  const normalized = normalizeTodo({ text, cost, currency, order: getNextTodoOrder() });
+  if (!normalized.text) return;
+  state.trip.todos = [...(state.trip.todos || []), normalized];
+  state.trip.updatedAt = new Date().toISOString();
+  render();
+}
+
+function getNextTodoOrder() {
+  return Math.max(-1, ...(state.trip.todos || []).map((todo) => Number(todo.order) || 0)) + 1;
+}
+
+function getNextSubtodoOrder(parent) {
+  return Math.max(-1, ...(parent.subtodos || []).map((subtodo) => Number(subtodo.order) || 0)) + 1;
+}
+
+function reorderTodo(draggedId, targetId, position = "before") {
+  if (!draggedId || !targetId || draggedId === targetId) return;
+  const ordered = getTripTodos();
+  const draggedIndex = ordered.findIndex((todo) => todo.id === draggedId);
+  if (draggedIndex < 0) return;
+
+  const [dragged] = ordered.splice(draggedIndex, 1);
+  const targetIndex = ordered.findIndex((todo) => todo.id === targetId);
+  if (targetIndex < 0) return;
+  ordered.splice(position === "after" ? targetIndex + 1 : targetIndex, 0, dragged);
+  const orderById = new Map(ordered.map((todo, index) => [todo.id, index]));
+  state.trip.todos = (state.trip.todos || []).map((todo) => ({
+    ...todo,
+    order: orderById.get(todo.id) ?? todo.order,
+    updatedAt: todo.id === draggedId ? new Date().toISOString() : todo.updatedAt,
+  }));
+  state.trip.updatedAt = new Date().toISOString();
+  render();
+}
+
+function updateTodoText(id, text, cost = "", currency = "USD") {
+  const trimmed = String(text || "").trim();
+  if (!trimmed) return;
+  const now = new Date().toISOString();
+  state.trip.todos = (state.trip.todos || []).map((todo) =>
+    todo.id === id
+      ? {
+          ...todo,
+          text: trimmed,
+          cost: normalizeCostValue(cost),
+          currency: normalizeCurrency(currency),
+          updatedAt: now,
+        }
+      : todo,
+  );
+  state.editingTodoId = null;
+  state.trip.updatedAt = now;
+  render();
+}
+
+function addSubtodo(parentId, text, cost = "", currency = "USD") {
+  const now = new Date().toISOString();
+  state.trip.todos = (state.trip.todos || []).map((todo) => {
+    if (todo.id !== parentId) return todo;
+    const subtodo = normalizeSubtodo({ text, cost, currency, order: getNextSubtodoOrder(todo) });
+    if (!subtodo.text) return todo;
+    return {
+      ...todo,
+      done: false,
+      subtodos: [...(todo.subtodos || []), subtodo],
+      updatedAt: now,
+    };
+  });
+  state.trip.updatedAt = now;
+  toggleTodoExpanded(parentId, true);
+}
+
+function toggleSubtodo(parentId, id, done) {
+  const now = new Date().toISOString();
+  state.trip.todos = (state.trip.todos || []).map((todo) => {
+    if (todo.id !== parentId) return todo;
+    const subtodos = (todo.subtodos || []).map((subtodo) =>
+      subtodo.id === id
+        ? {
+            ...subtodo,
+            done,
+            updatedAt: now,
+          }
+        : subtodo,
+    );
+    return {
+      ...todo,
+      done: subtodos.some((subtodo) => !subtodo.done) ? false : todo.done,
+      subtodos,
+      updatedAt: now,
+    };
+  });
+  state.trip.updatedAt = now;
+  render();
+}
+
+function deleteSubtodo(parentId, id) {
+  const now = new Date().toISOString();
+  state.trip.todos = (state.trip.todos || []).map((todo) =>
+    todo.id === parentId
+      ? {
+          ...todo,
+          subtodos: (todo.subtodos || []).filter((subtodo) => subtodo.id !== id),
+          updatedAt: now,
+        }
+      : todo,
+  );
+  if (state.editingSubtodo?.parentId === parentId && state.editingSubtodo?.id === id) {
+    state.editingSubtodo = null;
+  }
+  state.trip.updatedAt = now;
+  render();
+}
+
+function updateSubtodoText(parentId, id, text, cost = "", currency = "USD") {
+  const trimmed = String(text || "").trim();
+  if (!trimmed) return;
+  const now = new Date().toISOString();
+  state.trip.todos = (state.trip.todos || []).map((todo) =>
+    todo.id === parentId
+      ? {
+          ...todo,
+          subtodos: (todo.subtodos || []).map((subtodo) =>
+            subtodo.id === id
+              ? {
+                  ...subtodo,
+                  text: trimmed,
+                  cost: normalizeCostValue(cost),
+                  currency: normalizeCurrency(currency),
+                  updatedAt: now,
+                }
+              : subtodo,
+          ),
+          updatedAt: now,
+        }
+      : todo,
+  );
+  state.editingSubtodo = null;
+  state.trip.updatedAt = now;
+  render();
+}
+
+function reorderSubtodo(parentId, draggedId, targetId, position = "before") {
+  if (!parentId || !draggedId || !targetId || draggedId === targetId) return;
+  const now = new Date().toISOString();
+  state.trip.todos = (state.trip.todos || []).map((todo) => {
+    if (todo.id !== parentId) return todo;
+    const ordered = getSubtodos(todo);
+    const draggedIndex = ordered.findIndex((subtodo) => subtodo.id === draggedId);
+    if (draggedIndex < 0) return todo;
+
+    const [dragged] = ordered.splice(draggedIndex, 1);
+    const targetIndex = ordered.findIndex((subtodo) => subtodo.id === targetId);
+    if (targetIndex < 0) return todo;
+    ordered.splice(position === "after" ? targetIndex + 1 : targetIndex, 0, dragged);
+    const orderById = new Map(ordered.map((subtodo, index) => [subtodo.id, index]));
+    return {
+      ...todo,
+      subtodos: (todo.subtodos || []).map((subtodo) => ({
+        ...subtodo,
+        order: orderById.get(subtodo.id) ?? subtodo.order,
+        updatedAt: subtodo.id === draggedId ? now : subtodo.updatedAt,
+      })),
+      updatedAt: now,
+    };
+  });
+  state.trip.updatedAt = now;
+  render();
+}
+
+function toggleTodo(id, done) {
+  state.trip.todos = (state.trip.todos || []).map((todo) =>
+    todo.id === id ? updateParentTodoDone(todo, done) : todo,
+  );
+  state.trip.updatedAt = new Date().toISOString();
+  render();
+}
+
+function updateParentTodoDone(todo, done) {
+  const hasIncompleteSubtodos = (todo.subtodos || []).some((subtodo) => !subtodo.done);
+  if (done && hasIncompleteSubtodos) return todo;
+  return {
+    ...todo,
+    done,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+function deleteTodo(id) {
+  state.trip.todos = (state.trip.todos || []).filter((todo) => todo.id !== id);
+  state.expandedTodoIds = state.expandedTodoIds.filter((todoId) => todoId !== id);
+  if (state.editingTodoId === id) state.editingTodoId = null;
+  if (state.editingSubtodo?.parentId === id) state.editingSubtodo = null;
+  state.trip.updatedAt = new Date().toISOString();
+  render();
+}
+
 function shouldShowTimezoneForItems(items) {
   const timezones = new Set(items.flatMap(getDisplayTimezones));
   return timezones.size > 1;
@@ -1064,8 +2015,8 @@ function getTbdItems() {
 
 function filteredItems() {
   return state.trip.items.filter((item) => {
-    const typeMatch = state.filters.type === "all" || item.type === state.filters.type;
-    const statusMatch = state.filters.status === "all" || item.status === state.filters.status;
+    const typeMatch = filterAllows(state.filters.type, item.type);
+    const statusMatch = filterAllows(state.filters.status, item.status);
     const haystack = [
       item.title,
       item.city,
@@ -1304,6 +2255,27 @@ function normalizeCurrency(value) {
   return CURRENCIES.includes(normalized) ? normalized : "USD";
 }
 
+function normalizeCostValue(value) {
+  const text = String(value ?? "").trim();
+  if (!text) return "";
+  const amount = Number(text);
+  if (!Number.isFinite(amount) || amount < 0) return "";
+  return String(amount);
+}
+
+function normalizeCostSettings(settings = {}) {
+  const source = settings && typeof settings === "object" ? settings : {};
+  return {
+    displayCurrency: normalizeCurrency(source.displayCurrency),
+    usdToRmbRate: normalizeExchangeRate(source.usdToRmbRate),
+  };
+}
+
+function normalizeExchangeRate(value) {
+  const rate = Number(value);
+  return Number.isFinite(rate) && rate > 0 ? rate : DEFAULT_USD_TO_RMB_RATE;
+}
+
 function formatTimezone(value, options = {}) {
   const timezone = TIMEZONES.find((entry) => entry.value === normalizeTimezone(value));
   if (!timezone) return options.compact ? "北京" : "北京时间";
@@ -1311,7 +2283,16 @@ function formatTimezone(value, options = {}) {
 }
 
 function formatCost(item) {
-  return `${normalizeCurrency(item.currency)} ${item.cost}`;
+  return formatCostAmount(item.cost, item.currency);
+}
+
+function formatCostAmount(cost, currency) {
+  const amount = Number(cost || 0);
+  const formattedAmount = amount.toLocaleString([], {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
+  });
+  return `${normalizeCurrency(currency)} ${formattedAmount}`;
 }
 
 function formatTime(value, options = {}) {
