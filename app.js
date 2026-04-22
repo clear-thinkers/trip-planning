@@ -6,6 +6,7 @@ const ITEM_TYPES = [
   "Activity",
   "Family Visit",
   "Meal",
+  "Lesson",
   "Transit",
   "Rest",
   "Reminder",
@@ -18,6 +19,7 @@ const DEFAULT_ITEM_TYPE_COLORS = {
   Activity: "#2f6f73",
   "Family Visit": "#4d7c8a",
   Meal: "#7c3aed",
+  Lesson: "#8b5e34",
   Transit: "#b88a2d",
   Rest: "#16a34a",
   Reminder: "#2f6f73",
@@ -735,7 +737,7 @@ function renderCalendar() {
     const itemMarkup = items
       .map(
         (item) => `
-          <button class="item-pill" ${renderItemTypeStyle(item.type)} data-action="edit" data-id="${item.id}" data-type="${escapeHtml(item.type)}" type="button">
+          <button class="item-pill" ${renderItemTypeStyle(item.type)} data-action="edit" data-id="${item.id}" data-type="${escapeHtml(item.type)}" data-calendar-drag="true" draggable="true" type="button">
             ${renderStatusIcon(item.status)}
             <span class="item-time">${escapeHtml(formatItemTime(item, { showTimezone }))}</span>
             <span class="item-title">${escapeHtml(item.title)}</span>
@@ -772,6 +774,7 @@ function renderCalendar() {
   `;
   bindDynamicActions(els.calendarView);
   bindCalendarDayCells();
+  bindCalendarItemDragAndDrop();
 }
 
 function renderList() {
@@ -1485,6 +1488,61 @@ function bindCalendarDayCells() {
       render();
     });
   });
+}
+
+function bindCalendarItemDragAndDrop() {
+  const cells = Array.from(els.calendarView.querySelectorAll(".day-cell[data-date]"));
+  const draggableItems = Array.from(els.calendarView.querySelectorAll("[data-calendar-drag='true'][data-id]"));
+
+  draggableItems.forEach((item) => {
+    item.addEventListener("dragstart", (event) => {
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/plain", item.dataset.id);
+      item.classList.add("dragging");
+    });
+    item.addEventListener("dragend", () => {
+      item.classList.remove("dragging");
+      cells.forEach((cell) => cell.classList.remove("drag-over"));
+    });
+  });
+
+  cells.forEach((cell) => {
+    cell.addEventListener("dragover", (event) => {
+      event.preventDefault();
+      cell.classList.add("drag-over");
+      event.dataTransfer.dropEffect = "move";
+    });
+    cell.addEventListener("dragleave", (event) => {
+      if (event.currentTarget.contains(event.relatedTarget)) return;
+      cell.classList.remove("drag-over");
+    });
+    cell.addEventListener("drop", (event) => {
+      event.preventDefault();
+      cell.classList.remove("drag-over");
+      moveItemToCalendarDate(event.dataTransfer.getData("text/plain"), cell.dataset.date);
+    });
+  });
+}
+
+function moveItemToCalendarDate(id, targetDate) {
+  if (!id || !targetDate) return;
+  const item = state.trip.items.find((entry) => entry.id === id);
+  if (!item || !item.startDateTime) return;
+  if (getDatePart(item.startDateTime) === targetDate) return;
+
+  const now = new Date().toISOString();
+  state.trip.items = state.trip.items.map((entry) =>
+    entry.id === id
+      ? {
+          ...entry,
+          startDateTime: shiftDateTimeToDate(entry.startDateTime, targetDate),
+          endDateTime: shiftEndDateTimeToDate(entry, targetDate),
+          updatedAt: now,
+        }
+      : entry,
+  );
+  state.selectedDate = targetDate;
+  render();
 }
 
 function updateTripSettings() {
