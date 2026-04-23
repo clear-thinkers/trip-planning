@@ -1551,13 +1551,15 @@ button:focus-visible {
   padding: 12px;
 }
 
-.cost-summary-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+.cost-summary-grid,
+.cost-summary-cards {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   margin-bottom: 14px;
 }
 
-.cost-breakdown-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.cost-breakdown-grid,
+.cost-sections {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .cost-summary-card,
@@ -1636,31 +1638,46 @@ button:focus-visible {
 }
 
 .cost-entry {
-  align-items: center;
+  align-items: flex-start;
   background: #f8fafc;
-  display: grid;
+  display: flex;
   gap: 10px;
-  grid-template-columns: minmax(0, 1fr) auto;
+  justify-content: space-between;
   padding: 10px;
 }
 
-.cost-entry strong,
-.cost-entry span {
-  display: block;
-  overflow-wrap: anywhere;
+.cost-entry-copy {
+  flex: 1;
+  min-width: 0;
 }
 
-.cost-entry span {
+.cost-item-title,
+.cost-item-meta {
+  display: block;
+}
+
+.cost-item-title {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.cost-item-meta {
   color: var(--muted);
   font-size: 0.78rem;
   font-weight: 700;
   margin-top: 2px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
-.cost-entry .cost-amount {
+.cost-entry .cost-amount,
+.cost-item-amount {
   color: var(--text);
   font-size: 0.9rem;
   font-weight: 800;
+  min-width: 80px;
+  overflow: visible;
+  text-align: right;
   white-space: nowrap;
 }
 
@@ -1829,6 +1846,24 @@ button:focus-visible {
 
   #listView .timeline-time {
     padding-top: 0;
+  }
+
+  .cost-summary-grid,
+  .cost-summary-cards {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .cost-breakdown-grid,
+  .cost-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .cost-breakdown,
+  .cost-section {
+    width: 100%;
   }
 
 }

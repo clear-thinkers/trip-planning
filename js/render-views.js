@@ -589,13 +589,13 @@ export function renderCosts() {
           <p class="field-hint">1 USD = RMB</p>
         </div>
       </div>
-      <div class="cost-summary-grid" style="grid-template-columns: repeat(4, minmax(0, 1fr));">
+      <div class="cost-summary-grid cost-summary-cards">
         ${renderCostSummaryCard("Total tracked", allCosts, costSettings, "total")}
         ${renderCostSummaryCard("Travel plans", travelCosts, costSettings, "travel")}
         ${renderCostSummaryCard("Checklist todos", todoCosts, costSettings, "todo")}
         ${renderCostSummaryCard("Packing items", packingCosts, costSettings, "packing")}
       </div>
-      <div class="cost-breakdown-grid" style="grid-template-columns: repeat(3, minmax(0, 1fr));">
+      <div class="cost-breakdown-grid cost-sections">
         ${renderCostBreakdown("Travel costs", travelCosts, "Costs entered on calendar and day detail itinerary items.", costSettings, "travel")}
         ${renderCostBreakdown("Checklist costs", todoCosts, "Costs entered on planning todos and sub todos.", costSettings, "todo")}
         ${renderCostBreakdown("Packing costs", packingCosts, "Costs entered on packing items across the packing planner.", costSettings, "packing")}
@@ -679,11 +679,11 @@ export function renderCostEntry(entry, costSettings) {
   const meta = normalizeCurrency(entry.currency) === costSettings.displayCurrency ? entry.meta : `${entry.meta} - Original ${originalCost}`;
   return `
     <div class="cost-entry">
-      <div>
-        <strong>${escapeHtml(entry.title)}</strong>
-        <span>${escapeHtml(meta)}</span>
+      <div class="cost-entry-copy">
+        <strong class="cost-item-title">${escapeHtml(entry.title)}</strong>
+        <span class="cost-item-meta">${escapeHtml(meta)}</span>
       </div>
-      <span class="cost-amount">${escapeHtml(convertedCost)}</span>
+      <span class="cost-amount cost-item-amount">${escapeHtml(convertedCost)}</span>
     </div>
   `;
 }
