@@ -408,7 +408,7 @@ export function renderCalendarStatusLegend() {
 
   return `
     <section class="calendar-status-legend" aria-label="Status legend">
-      <h3>çŠ¶æ€å›¾ä¾‹</h3>
+      <h3>Status legend</h3>
       <div class="calendar-status-legend-list">${statusLegend}</div>
     </section>
   `;

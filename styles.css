@@ -739,6 +739,13 @@ button:focus-visible {
 
 .inline-day-actions {
   margin-top: 12px;
+  margin-bottom: 14px;
+}
+
+.inline-day-actions + .timeline,
+.inline-day-actions + .mobile-day-item-stack,
+.inline-day-actions + .empty-state {
+  margin-top: 0;
 }
 
 .list-day-button {
