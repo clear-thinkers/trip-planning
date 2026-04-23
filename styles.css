@@ -1155,7 +1155,7 @@ button:focus-visible {
 
 .todo-item label,
 .subtodo-item label {
-  align-items: start;
+  align-items: center;
   color: var(--text);
   display: grid;
   gap: 8px;
@@ -1448,6 +1448,10 @@ button:focus-visible {
 
 .planning-due-panel summary strong {
   overflow-wrap: anywhere;
+}
+
+.planning-due-static-header {
+  align-items: center;
 }
 
 .planning-due-content {
@@ -2014,6 +2018,25 @@ button:focus-visible {
 
   .planning-layout {
     grid-template-columns: 1fr;
+  }
+
+  .todo-form,
+  .subtodo-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .todo-form .secondary-button,
+  .subtodo-form .secondary-button {
+    width: 100%;
+  }
+
+  .todo-cost-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .todo-cost-row input,
+  .todo-cost-row select {
+    width: 100%;
   }
 
   .cost-summary-grid,

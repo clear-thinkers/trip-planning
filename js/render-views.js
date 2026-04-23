@@ -923,8 +923,8 @@ export function renderPlanningTodos() {
   const filteredTodos = getFilteredPlanningTodos();
   const dueEntries = getPlanningDueEntries(filteredTodos);
   const completedTodos = todos.filter((todo) => todo.done).length;
-  els.planningView.innerHTML = `
-    <div class="planning-layout">
+  const mobile = isMobileViewport();
+  const todoPanel = `
       <section class="todo-panel section-block" aria-label="Planning todos">
         <div class="todo-header">
           <div>
@@ -952,7 +952,11 @@ export function renderPlanningTodos() {
           }
         </div>
       </section>
-      ${renderPlanningDuePanel(dueEntries)}
+  `;
+
+  els.planningView.innerHTML = `
+    <div class="planning-layout">
+      ${mobile ? renderPlanningDuePanel(dueEntries) + todoPanel : todoPanel + renderPlanningDuePanel(dueEntries)}
     </div>
   `;
   bindTodoActions(els.planningView);
@@ -961,8 +965,29 @@ export function renderPlanningTodos() {
 
 export function renderPlanningDuePanel(dueEntries) {
   const mobile = isMobileViewport();
+  if (mobile) {
+    return `
+      <section class="section-block planning-calendar-panel planning-due-panel" id="todos-due-section" aria-label="Todo due dates">
+        <div class="section-header planning-due-static-header">
+          <div>
+            <p class="eyebrow">Planning calendar</p>
+            <h3>Due dates</h3>
+          </div>
+          <span class="badge">${dueEntries.length} item${dueEntries.length === 1 ? "" : "s"} with due dates</span>
+        </div>
+        <div class="planning-due-content">
+          ${
+            dueEntries.length
+              ? renderPlanningDueWeeks(dueEntries)
+              : `<div class="empty-state compact">No due dates to show for the current filters.</div>`
+          }
+        </div>
+      </section>
+    `;
+  }
+
   return `
-    <details class="section-block planning-calendar-panel planning-due-panel" id="todos-due-section" ${mobile ? "" : "open"}>
+    <details class="section-block planning-calendar-panel planning-due-panel" id="todos-due-section" open>
       <summary>
         <span>
           <p class="eyebrow">Planning calendar</p>
