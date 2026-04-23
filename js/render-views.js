@@ -299,7 +299,128 @@ export function renderAlerts() {
   els.alerts.innerHTML = "";
 }
 
+export function getWeekStartMonday(value) {
+  const date = parseLocalDate(value);
+  const day = date.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  date.setDate(date.getDate() + diff);
+  return toIsoDate(date);
+}
+
+export function groupDatesByMondayWeek(dates) {
+  const weeks = [];
+  const weekMap = new Map();
+  dates.forEach((date) => {
+    const weekStart = getWeekStartMonday(date);
+    if (!weekMap.has(weekStart)) {
+      const group = { weekStart, dates: [] };
+      weekMap.set(weekStart, group);
+      weeks.push(group);
+    }
+    weekMap.get(weekStart).dates.push(date);
+  });
+  return weeks;
+}
+
+export function renderInlineDayActions(date) {
+  return `
+    <div class="day-actions inline-day-actions">
+      <button class="primary-button" data-action="add-on-day" data-date="${date}" type="button">Add</button>
+      <button class="secondary-button" data-action="go-day" data-date="${date}" type="button">Review</button>
+    </div>
+  `;
+}
+
+export function renderMobileCalendarDay(date) {
+  const items = getItemsForDate(date);
+  const showTimezone = shouldShowTimezoneForItems(items);
+  const city = getPrimaryCity(date);
+  return `
+    <article class="mobile-day-group ${date === state.selectedDate ? "selected-section" : ""}">
+      <button class="mobile-day-button" data-action="select-day" data-date="${date}" type="button">
+        <span class="mobile-day-heading">
+          <span class="mobile-day-label">${escapeHtml(formatDateLong(date))}</span>
+          <span class="mobile-day-subtitle">${escapeHtml(city || "No primary city yet")}</span>
+        </span>
+        <span class="badge">${items.length} item${items.length === 1 ? "" : "s"}</span>
+      </button>
+      ${date === state.selectedDate ? renderInlineDayActions(date) : ""}
+      ${
+        items.length
+          ? `
+            <div class="item-stack mobile-day-item-stack">
+              ${items
+                .map(
+                  (item) => `
+                    <button class="item-pill" ${renderItemTypeStyle(item.type)} data-action="edit" data-id="${item.id}" data-type="${escapeHtml(item.type)}" type="button">
+                      ${renderStatusIcon(item.status)}
+                      <span class="item-time">${escapeHtml(formatItemTime(item, { showTimezone }))}</span>
+                      <span class="item-title">${escapeHtml(item.title)}</span>
+                      <span class="item-meta">${escapeHtml(getItemMeta(item))}</span>
+                    </button>
+                  `,
+                )
+                .join("")}
+            </div>
+          `
+          : `<div class="empty-state compact">No plans yet.</div>`
+      }
+    </article>
+  `;
+}
+
+export function renderMobileCalendar() {
+  const weeks = groupDatesByMondayWeek(eachTripDate());
+  return `
+    <div class="mobile-calendar-list">
+      ${weeks
+        .map(
+          (week) => `
+            <section class="section-block mobile-week-block">
+              <div class="mobile-week-header">
+                <p class="eyebrow">Calendar week</p>
+                <h3>Week of ${escapeHtml(formatDateShort(week.weekStart))}</h3>
+              </div>
+              <div class="mobile-week-days">
+                ${week.dates.map((date) => renderMobileCalendarDay(date)).join("")}
+              </div>
+            </section>
+          `,
+        )
+        .join("")}
+    </div>
+  `;
+}
+
+export function renderCalendarStatusLegend() {
+  const statusLegend = STATUSES.map((status) => {
+    const description = STATUS_LEGEND_DETAILS[status] || "";
+    return `
+      <div class="calendar-status-legend-item">
+        ${renderStatusIcon(status)}
+        <div class="calendar-status-legend-copy">
+          <strong>${escapeHtml(status)}</strong>
+          <span>${escapeHtml(description)}</span>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  return `
+    <section class="calendar-status-legend" aria-label="Status legend">
+      <h3>çŠ¶æ€å›¾ä¾‹</h3>
+      <div class="calendar-status-legend-list">${statusLegend}</div>
+    </section>
+  `;
+}
+
 export function renderCalendar() {
+  if (isMobileViewport()) {
+    els.calendarView.innerHTML = renderMobileCalendar() + renderCalendarStatusLegend();
+    bindDynamicActions(els.calendarView);
+    return;
+  }
+
   const dates = getCalendarDates();
   const printWeekCount = Math.max(1, Math.ceil(dates.length / 7));
   const printWeekHeight = `${Math.min(1.45, 9.15 / printWeekCount).toFixed(2)}in`;
@@ -371,10 +492,12 @@ export function renderCalendar() {
 }
 
 export function renderList() {
+  const mobile = isMobileViewport();
   const rows = eachTripDate()
     .map((date) => {
       const items = getItemsForDate(date);
       const showTimezone = shouldShowTimezoneForItems(items);
+      const city = getPrimaryCity(date);
       return `
         <section class="section-block ${date === state.selectedDate ? "selected-section" : ""}">
           <div class="section-header">
@@ -383,6 +506,8 @@ export function renderList() {
             </button>
             <span class="muted">${items.length} item${items.length === 1 ? "" : "s"}</span>
           </div>
+          ${mobile && city ? `<p class="muted list-day-city">${escapeHtml(city)}</p>` : ""}
+          ${mobile && date === state.selectedDate ? renderInlineDayActions(date) : ""}
           ${
             items.length
               ? `<div class="timeline">${items.map((item) => renderTimelineRow(item, { showTimezone })).join("")}</div>`
@@ -1178,6 +1303,7 @@ export function bindDynamicActions(container) {
       }
       if (action === "add-on-day") openItemDialog(null, element.dataset.date);
       if (action === "go-day") {
+        if (element.dataset.date) state.selectedDate = element.dataset.date;
         state.view = "day";
         render();
       }

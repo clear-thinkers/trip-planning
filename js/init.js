@@ -192,6 +192,11 @@ export function updateDateTimeTbdControls() {
 }
 
 export function bindEvents() {
+  window.addEventListener("resize", debounce(() => {
+    if (state.screen !== "workspace") return;
+    render();
+  }, 120));
+
   els.tripTitle.addEventListener("input", updateTripSettings);
   els.tripStart.addEventListener("change", updateTripSettings);
   els.tripEnd.addEventListener("change", updateTripSettings);
