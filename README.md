@@ -18,14 +18,30 @@ No npm install step is required. Trip data is saved in browser `localStorage`, a
 
 If you previously used the app from `file:///...` and your old trips do not appear on `localhost`, open [recover-file-storage.html](recover-file-storage.html) directly in the same browser profile and export the old file-based storage as JSON. Then import that JSON into the localhost app.
 
+## Install on iOS (Add to Home Screen)
+
+The app is a Progressive Web App. When served over HTTPS, it can be installed on an iPhone or iPad:
+
+1. Open the app URL in Safari
+2. Tap the Share button
+3. Tap **Add to Home Screen**
+
+Once installed, the app loads fully offline from the local cache. All trip data stays on-device in `localStorage`. If a new version is deployed, a banner will appear at the bottom of the screen with a **Refresh now** button.
+
+> Service workers require HTTPS in production. The local `http://localhost` dev server works for testing but the install prompt will not appear until the app is hosted on a real HTTPS domain.
+
 ## App Structure
 
-- `app.js` boots the app and coordinates top-level rendering
+- `app.js` boots the app, coordinates top-level rendering, and registers the service worker
 - `js/init.js` caches DOM nodes, populates controls, and binds events
 - `js/state.js` normalizes trip data and owns local persistence
 - `js/render-views.js` renders trips, itinerary views, planning todos, costs, controls, import/export, and print
 - `js/render-packing.js` renders the packing list, bag planner, and packing controls
 - `js/data.js`, `js/warnings.js`, `js/format.js`, `js/constants.js`, and `js/render-shared.js` hold shared logic
+- `sw.js` service worker — pre-caches all app assets, serves the app offline, and notifies the page when a new version activates
+- `manifest.json` PWA manifest — name, icons, and display settings for home screen installation
+- `offline.html` fallback page shown when the user is offline and requests an uncached resource
+- `brand.svg` local brand image used in the app header
 
 ## Current Features
 

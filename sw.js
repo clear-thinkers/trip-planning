@@ -1,4 +1,4 @@
-const CACHE = "trip-planner-v1";
+const CACHE = "trip-planner-v2";
 const ASSETS = [
   "./",
   "./index.html",
@@ -7,6 +7,17 @@ const ASSETS = [
   "./icon-180.png",
   "./icon-192.png",
   "./icon-512.png",
+  "./brand.svg",
+  "./offline.html",
+  "./js/constants.js",
+  "./js/data.js",
+  "./js/format.js",
+  "./js/init.js",
+  "./js/render-packing.js",
+  "./js/render-shared.js",
+  "./js/render-views.js",
+  "./js/state.js",
+  "./js/warnings.js",
 ];
 
 self.addEventListener("install", (e) => {
@@ -18,13 +29,21 @@ self.addEventListener("activate", (e) => {
   e.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
-    )
+    ).then(() => self.clients.matchAll({ type: "window" })).then((clients) => {
+      clients.forEach((client) => client.postMessage({ type: "SW_UPDATED" }));
+    })
   );
   self.clients.claim();
 });
 
 self.addEventListener("fetch", (e) => {
+  if (e.request.method !== "GET") return;
   e.respondWith(
-    caches.match(e.request).then((cached) => cached || fetch(e.request))
+    caches.match(e.request).then((cached) => {
+      if (cached) return cached;
+      return fetch(e.request).catch(() =>
+        caches.match("./offline.html")
+      );
+    })
   );
 });

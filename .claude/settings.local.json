@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs ls *)",
+      "Bash(file /c/Users/alexi/coding/trip-planning/icon-*.png)",
+      "Bash(xargs grep *)",
+      "Bash(grep -iE \"\\\\.\\(html|jpg|jpeg|webp|svg\\)$\")",
+      "Bash(git -C \"c:/Users/alexi/coding/trip-planning\" log --oneline -5)",
+      "Bash(git -C \"c:/Users/alexi/coding/trip-planning\" diff HEAD -- index.html sw.js)"
+    ]
+  }
+}

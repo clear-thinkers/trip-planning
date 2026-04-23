@@ -51,5 +51,19 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("./sw.js");
+  navigator.serviceWorker
+    .register("./sw.js", { scope: "./" })
+    .then((reg) => {
+      console.log("[SW] Registered, scope:", reg.scope);
+    })
+    .catch((err) => {
+      console.error("[SW] Registration failed:", err);
+    });
+
+  navigator.serviceWorker.addEventListener("message", (event) => {
+    if (event.data && event.data.type === "SW_UPDATED") {
+      const banner = document.getElementById("updateBanner");
+      if (banner) banner.style.display = "block";
+    }
+  });
 }

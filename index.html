@@ -4,17 +4,27 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Trip Planner</title>
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Trip Planner" />
+    <meta name="theme-color" content="#ffffff" />
+    <link rel="apple-touch-icon" sizes="180x180" href="icon-180.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png" />
     <link rel="stylesheet" href="styles.css" />
     <link rel="manifest" href="manifest.json" />
   </head>
   <body>
+    <div id="updateBanner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#2f6f73;color:#ffffff;text-align:center;padding:12px 16px;font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;font-size:0.95rem;">
+      Update available - <button onclick="window.location.reload()" style="background:#ffffff;color:#2f6f73;border:none;border-radius:4px;padding:4px 12px;font-size:0.9rem;cursor:pointer;margin-left:8px;">Refresh now</button>
+    </div>
     <div class="app-shell">
       <header class="topbar">
         <div class="brand-block">
           <img
             class="brand-image"
             alt=""
-            src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=240&q=70"
+            src="brand.svg"
           />
           <div>
             <p class="eyebrow">Pre-trip workspace</p>

@@ -19,11 +19,11 @@ The app should support both overview and cleanup:
 
 ## 2. Current App Architecture
 
-The app now runs as a browser ES module app served from `http://localhost`.
+The app now runs as a browser ES module app served from `http://localhost`. It is also a Progressive Web App and can be installed on iOS via "Add to Home Screen" when served over HTTPS.
 
 Current file roles:
 
-- `app.js`: top-level render loop and screen coordination
+- `app.js`: top-level render loop, screen coordination, and service worker registration
 - `js/init.js`: element caching, select population, event binding
 - `js/state.js`: normalization, defaults, sample data, persistence
 - `js/render-views.js`: trips, itinerary views, planning todos, costs, controls, printing, import/export
@@ -33,6 +33,10 @@ Current file roles:
 - `js/format.js`: formatting, ids, date helpers, escaping
 - `js/constants.js`: item types, statuses, currencies, timezones, default packing categories
 - `js/render-shared.js`: shared UI fragments such as status icons and item styling
+- `sw.js`: service worker — pre-caches all local assets at install time, serves the app offline via cache-first strategy, notifies open windows when a new version activates
+- `manifest.json`: PWA manifest — display name, standalone display mode, theme color, and icons for home screen installation
+- `offline.html`: fallback page served when a fetch fails and the resource is not in cache
+- `brand.svg`: local brand image used in the app header (replaces external image dependency)
 
 The design goal of the reorg is to keep each major workflow editable without returning to a single giant file.
 
@@ -110,6 +114,7 @@ Implemented:
 - file-storage recovery helper for old `file:///` usage
 - print-friendly calendar output with status legend
 - typed confirmations for destructive actions
+- PWA with offline support and iOS "Add to Home Screen" installation
 
 Explicitly not in scope right now:
 
@@ -513,6 +518,11 @@ The current implementation stays intentionally lightweight:
 - browser-native modules instead of a framework build step
 - local persistence instead of backend storage
 - rendering organized by workflow rather than by framework convention
+- service worker for offline-first caching and iOS home screen installation (PWA)
+
+The PWA layer adds no build step or dependency. The service worker pre-caches all app assets at install time using a cache-first strategy. When a new version deploys, the activate handler notifies open windows so a visible update banner can prompt the user to reload.
+
+HTTPS is required in production for service workers and the home screen install prompt. The local `http://localhost` dev server bypasses this restriction for development.
 
 This keeps the app easy to inspect and edit while the workflow model is still evolving.
 
