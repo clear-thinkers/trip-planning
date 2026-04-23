@@ -1014,6 +1014,11 @@ button:focus-visible {
   align-self: start;
 }
 
+.planning-layout {
+  display: grid;
+  gap: 16px;
+}
+
 .todo-header {
   align-items: baseline;
   display: flex;
@@ -1061,35 +1066,35 @@ button:focus-visible {
 
 .todo-item,
 .subtodo-item {
-  align-items: center;
+  align-items: start;
   background: #f8fafc;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   display: grid;
-  gap: 10px;
+  gap: 8px;
   min-height: 56px;
   padding: 10px 12px;
 }
 
 .todo-item {
-  grid-template-columns: auto auto minmax(0, 1fr) auto auto auto auto;
+  grid-template-columns: 28px 28px minmax(0, 1fr) auto;
 }
 
 .todo-item.editing {
   align-items: start;
-  grid-template-columns: auto auto minmax(0, 1fr);
+  grid-template-columns: 28px 28px minmax(0, 1fr);
 }
 
 .subtodo-item {
   background: #ffffff;
-  grid-template-columns: auto minmax(0, 1fr) auto auto auto;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
   min-height: 48px;
   padding: 8px 10px;
 }
 
 .subtodo-item.editing {
   align-items: start;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: 28px minmax(0, 1fr);
 }
 
 .todo-item.dragging,
@@ -1122,26 +1127,51 @@ button:focus-visible {
 }
 
 .todo-drag-handle {
-  color: var(--primary);
+  align-items: center;
+  align-self: stretch;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--muted);
   cursor: grab;
-  font-size: 0.7rem;
-  font-weight: 800;
-  text-transform: uppercase;
+  display: inline-flex;
+  font-size: 1rem;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0;
+  touch-action: none;
 }
 
-.todo-item:active .todo-drag-handle {
+.todo-drag-handle:hover,
+.todo-drag-handle:focus-visible {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.todo-item:active .todo-drag-handle,
+.subtodo-item:active .todo-drag-handle {
   cursor: grabbing;
 }
 
 .todo-item label,
 .subtodo-item label {
-  align-items: center;
+  align-items: start;
   color: var(--text);
   display: grid;
-  gap: 10px;
+  gap: 8px;
   grid-template-columns: auto minmax(0, 1fr);
   margin: 0;
   min-width: 0;
+}
+
+.todo-text-block {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.todo-edit-block {
+  align-self: stretch;
 }
 
 .todo-item input,
@@ -1149,12 +1179,6 @@ button:focus-visible {
   height: 20px;
   margin: 0;
   width: 20px;
-}
-
-.todo-item span,
-.subtodo-item span {
-  line-height: 1.3;
-  overflow-wrap: anywhere;
 }
 
 .todo-item.done label span,
@@ -1171,6 +1195,12 @@ button:focus-visible {
   overflow-wrap: anywhere;
   padding: 0;
   text-align: left;
+}
+
+.todo-text-button,
+.todo-text-button:hover,
+.todo-text-button:focus-visible {
+  width: 100%;
 }
 
 .todo-text-button:hover,
@@ -1238,6 +1268,17 @@ button:focus-visible {
   display: none;
 }
 
+.todo-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.todo-meta {
+  display: none;
+}
+
 .todo-edit-form {
   display: grid;
   gap: 8px;
@@ -1291,18 +1332,141 @@ button:focus-visible {
 }
 
 .todo-delete-button {
-  align-self: center;
-  min-height: 36px;
-  min-width: 36px;
-  padding: 0;
+  align-self: start;
+  background: rgba(180, 35, 24, 0.08);
+  border-color: rgba(180, 35, 24, 0.28);
+  color: var(--error);
+  font-size: 12px;
+  line-height: 1;
+  min-height: 28px;
+  min-width: unset;
+  opacity: 0.9;
+  padding: 2px 6px;
+}
+
+.todo-delete-button:hover,
+.todo-delete-button:focus-visible {
+  background: rgba(180, 35, 24, 0.14);
+  border-color: rgba(180, 35, 24, 0.4);
+  color: var(--error);
 }
 
 .empty-state.compact {
   padding: 10px;
 }
 
-.planning-calendar-panel {
+.planning-calendar-panel,
+.planning-due-panel {
   margin-bottom: 12px;
+}
+
+@media (min-width: 769px) {
+  .planning-layout {
+    align-items: start;
+    grid-template-columns: minmax(0, 1.2fr) minmax(360px, 0.9fr);
+  }
+
+  .planning-layout .todo-panel,
+  .planning-layout .planning-due-panel {
+    margin-bottom: 0;
+  }
+
+  .todo-item {
+    align-items: center;
+    grid-template-columns: 28px 28px minmax(0, 1fr) auto auto;
+  }
+
+  .todo-item.editing {
+    align-items: start;
+    grid-template-columns: 28px 28px minmax(0, 1fr);
+  }
+
+  .subtodo-item {
+    align-items: center;
+    grid-template-columns: 28px minmax(0, 1fr) auto auto;
+  }
+
+  .subtodo-item.editing {
+    align-items: start;
+    grid-template-columns: 28px minmax(0, 1fr);
+  }
+
+  .todo-item label,
+  .subtodo-item label {
+    align-items: center;
+  }
+
+  .todo-text-block {
+    gap: 0;
+  }
+
+  .todo-badges-inline {
+    display: none;
+  }
+
+  .todo-meta {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: flex-end;
+  }
+}
+
+.planning-due-panel summary {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  list-style: none;
+}
+
+.planning-due-panel summary::-webkit-details-marker {
+  display: none;
+}
+
+.planning-due-panel summary::before {
+  color: var(--muted);
+  content: ">";
+  font-size: 0.9rem;
+  font-weight: 800;
+  margin-right: 2px;
+  transition: transform 140ms ease;
+}
+
+.planning-due-panel[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.planning-due-panel summary > span:first-child {
+  display: grid;
+  gap: 2px;
+  margin-right: auto;
+  min-width: 0;
+}
+
+.planning-due-panel summary strong {
+  overflow-wrap: anywhere;
+}
+
+.planning-due-content {
+  margin-top: 12px;
+}
+
+.planning-due-week-list,
+.planning-due-days,
+.planning-due-entry-list {
+  display: grid;
+  gap: 12px;
+}
+
+.planning-due-day .section-header {
+  margin-bottom: 8px;
+}
+
+.planning-due-day h4 {
+  margin-bottom: 0;
 }
 
 .planning-month-block + .planning-month-block {
@@ -1846,6 +2010,10 @@ button:focus-visible {
 
   #listView .timeline-time {
     padding-top: 0;
+  }
+
+  .planning-layout {
+    grid-template-columns: 1fr;
   }
 
   .cost-summary-grid,

@@ -9,6 +9,7 @@ import { bindPackingActions, getPackingFilterTagOptions, renderPackingControls }
 
 const render = requestRender;
 const MOBILE_BREAKPOINT = 768;
+let todoTouchDragState = null;
 
 export function isMobileViewport() {
   return window.innerWidth <= MOBILE_BREAKPOINT;
@@ -331,7 +332,8 @@ export function renderInlineDayActions(date) {
   `;
 }
 
-export function renderMobileCalendarDay(date) {
+export function renderGroupedItineraryDay(date, options = {}) {
+  const showActions = options.showActions !== false;
   const items = getItemsForDate(date);
   const showTimezone = shouldShowTimezoneForItems(items);
   const city = getPrimaryCity(date);
@@ -344,7 +346,7 @@ export function renderMobileCalendarDay(date) {
         </span>
         <span class="badge">${items.length} item${items.length === 1 ? "" : "s"}</span>
       </button>
-      ${date === state.selectedDate ? renderInlineDayActions(date) : ""}
+      ${showActions && date === state.selectedDate ? renderInlineDayActions(date) : ""}
       ${
         items.length
           ? `
@@ -369,20 +371,31 @@ export function renderMobileCalendarDay(date) {
   `;
 }
 
-export function renderMobileCalendar() {
-  const weeks = groupDatesByMondayWeek(eachTripDate());
+export function renderWeekGroupedItinerary(options = {}) {
+  const dates = options.dates || eachTripDate();
+  const emptyMessage = options.emptyMessage || "No itinerary items yet.";
+  const sectionClass = options.sectionClass || "mobile-week-block";
+  const listClass = options.listClass || "mobile-calendar-list";
+  const eyebrow = options.eyebrow || "Calendar week";
+  const showActions = options.showActions !== false;
+  const weeks = groupDatesByMondayWeek(dates);
+  const hasItems = dates.some((date) => getItemsForDate(date).length);
+  if (!hasItems) {
+    return `<div class="empty-state compact">${escapeHtml(emptyMessage)}</div>`;
+  }
+
   return `
-    <div class="mobile-calendar-list">
+    <div class="${escapeHtml(listClass)}">
       ${weeks
         .map(
           (week) => `
-            <section class="section-block mobile-week-block">
+            <section class="section-block ${escapeHtml(sectionClass)}">
               <div class="mobile-week-header">
-                <p class="eyebrow">Calendar week</p>
+                <p class="eyebrow">${escapeHtml(eyebrow)}</p>
                 <h3>Week of ${escapeHtml(formatDateShort(week.weekStart))}</h3>
               </div>
               <div class="mobile-week-days">
-                ${week.dates.map((date) => renderMobileCalendarDay(date)).join("")}
+                ${week.dates.map((date) => renderGroupedItineraryDay(date, { showActions })).join("")}
               </div>
             </section>
           `,
@@ -390,6 +403,17 @@ export function renderMobileCalendar() {
         .join("")}
     </div>
   `;
+}
+
+export function renderMobileCalendar() {
+  const weeks = groupDatesByMondayWeek(eachTripDate());
+  return renderWeekGroupedItinerary({
+    dates: weeks.flatMap((week) => week.dates),
+    eyebrow: "Calendar week",
+    listClass: "mobile-calendar-list",
+    sectionClass: "mobile-week-block",
+    showActions: true,
+  });
 }
 
 export function renderCalendarStatusLegend() {
@@ -880,39 +904,66 @@ export function renderSidePanel() {
 export function renderPlanningTodos() {
   const todos = getTripTodos();
   const filteredTodos = getFilteredPlanningTodos();
+  const dueEntries = getPlanningDueEntries(filteredTodos);
   const completedTodos = todos.filter((todo) => todo.done).length;
   els.planningView.innerHTML = `
-    ${renderPlanningDueCalendar(filteredTodos)}
-    <section class="todo-panel section-block" aria-label="Planning todos">
-      <div class="todo-header">
-        <div>
-          <p class="eyebrow">Planning todos</p>
-          <h3>Checklist</h3>
+    <div class="planning-layout">
+      <section class="todo-panel section-block" aria-label="Planning todos">
+        <div class="todo-header">
+          <div>
+            <p class="eyebrow">Planning todos</p>
+            <h3>Checklist</h3>
+          </div>
+          <span class="muted">${completedTodos}/${todos.length} done</span>
         </div>
-        <span class="muted">${completedTodos}/${todos.length} done</span>
-      </div>
-      <form class="todo-form" data-todo-form>
-        <input name="todoText" type="text" placeholder="Add a planning todo" aria-label="New planning todo" />
-        <button class="secondary-button" type="submit">Add</button>
-        <div class="todo-cost-row">
-          <input name="todoCost" type="number" min="0" step="0.01" placeholder="Cost" aria-label="Todo cost" />
-          <select name="todoCurrency" aria-label="Todo cost currency">${renderCurrencyOptions()}</select>
-          <input name="todoDueDate" type="date" aria-label="Todo due date" />
+        <form class="todo-form" data-todo-form>
+          <input name="todoText" type="text" placeholder="Add a planning todo" aria-label="New planning todo" />
+          <button class="secondary-button" type="submit">Add</button>
+          <div class="todo-cost-row">
+            <input name="todoCost" type="number" min="0" step="0.01" placeholder="Cost" aria-label="Todo cost" />
+            <select name="todoCurrency" aria-label="Todo cost currency">${renderCurrencyOptions()}</select>
+            <input name="todoDueDate" type="date" aria-label="Todo due date" />
+          </div>
+        </form>
+        <div class="todo-list">
+          ${
+            filteredTodos.length
+              ? filteredTodos.map(({ todo, subtodos }) => renderTodoItem(todo, subtodos)).join("")
+              : todos.length
+                ? `<div class="empty-state compact">No todos match the current filters.</div>`
+                : `<div class="empty-state compact">No todos yet.</div>`
+          }
         </div>
-      </form>
-      <div class="todo-list">
-        ${
-          filteredTodos.length
-            ? filteredTodos.map(({ todo, subtodos }) => renderTodoItem(todo, subtodos)).join("")
-            : todos.length
-              ? `<div class="empty-state compact">No todos match the current filters.</div>`
-              : `<div class="empty-state compact">No todos yet.</div>`
-        }
-      </div>
-    </section>
+      </section>
+      ${renderPlanningDuePanel(dueEntries)}
+    </div>
   `;
   bindTodoActions(els.planningView);
-  bindPlanningDueCalendar(els.planningView);
+  if (!isMobileViewport()) bindPlanningDueCalendar(els.planningView);
+}
+
+export function renderPlanningDuePanel(dueEntries) {
+  const mobile = isMobileViewport();
+  return `
+    <details class="section-block planning-calendar-panel planning-due-panel" id="todos-due-section" ${mobile ? "" : "open"}>
+      <summary>
+        <span>
+          <p class="eyebrow">Planning calendar</p>
+          <strong>Due dates</strong>
+        </span>
+        <span class="badge">${dueEntries.length} item${dueEntries.length === 1 ? "" : "s"} with due dates</span>
+      </summary>
+      <div class="planning-due-content">
+        ${
+          dueEntries.length
+            ? mobile
+              ? renderPlanningDueWeeks(dueEntries)
+              : renderPlanningDueMonths(dueEntries).join("")
+            : `<div class="empty-state compact">No due dates to show for the current filters.</div>`
+        }
+      </div>
+    </details>
+  `;
 }
 
 export function renderPlanningDueCalendar(filteredTodos) {
@@ -1030,13 +1081,67 @@ export function renderPlanningDueMonth(monthDate, dueEntries) {
   `;
 }
 
+export function renderPlanningDueWeeks(dueEntries) {
+  const weekMap = new Map();
+  dueEntries.forEach((entry) => {
+    const weekStart = getWeekStartMonday(entry.dueDate);
+    if (!weekMap.has(weekStart)) weekMap.set(weekStart, []);
+    weekMap.get(weekStart).push(entry);
+  });
+
+  return `
+    <div class="planning-due-week-list">
+      ${Array.from(weekMap.entries())
+        .map(([weekStart, entries]) => renderPlanningDueWeek(weekStart, entries))
+        .join("")}
+    </div>
+  `;
+}
+
+export function renderPlanningDueWeek(weekStart, entries) {
+  const dayMap = new Map();
+  entries.forEach((entry) => {
+    if (!dayMap.has(entry.dueDate)) dayMap.set(entry.dueDate, []);
+    dayMap.get(entry.dueDate).push(entry);
+  });
+
+  return `
+    <section class="section-block planning-due-week">
+      <div class="mobile-week-header">
+        <p class="eyebrow">Due week</p>
+        <h3>Week of ${escapeHtml(formatDateShort(weekStart))}</h3>
+      </div>
+      <div class="planning-due-days">
+        ${Array.from(dayMap.entries())
+          .map(([date, dayEntries]) => renderPlanningDueDay(date, dayEntries))
+          .join("")}
+      </div>
+    </section>
+  `;
+}
+
+export function renderPlanningDueDay(date, entries) {
+  return `
+    <article class="planning-due-day">
+      <div class="section-header">
+        <h4>${escapeHtml(formatDateLong(date))}</h4>
+        <span class="badge">${entries.length}</span>
+      </div>
+      <div class="due-entry-list planning-due-entry-list">
+        ${entries.map((entry) => renderPlanningDueEntry(entry, { draggable: false })).join("")}
+      </div>
+    </article>
+  `;
+}
+
 export function getMondayFirstWeekday(date) {
   return (date.getDay() + 6) % 7;
 }
 
-export function renderPlanningDueEntry(entry) {
+export function renderPlanningDueEntry(entry, options = {}) {
+  const draggable = options.draggable !== false;
   return `
-    <div class="due-entry-pill ${entry.done ? "done" : "open"} ${entry.kind}" draggable="true" data-due-entry-id="${entry.id}" data-due-entry-kind="${entry.kind}" data-due-parent-id="${entry.parentId}">
+    <div class="due-entry-pill ${entry.done ? "done" : "open"} ${entry.kind}" ${draggable ? 'draggable="true"' : ""} ${draggable ? `data-due-entry-id="${entry.id}" data-due-entry-kind="${entry.kind}" data-due-parent-id="${entry.parentId}"` : ""}>
       <span class="due-entry-title">${escapeHtml(entry.title)}</span>
       <span class="due-entry-meta">${escapeHtml(entry.detail)}</span>
     </div>
@@ -1128,6 +1233,20 @@ export function renderWarningItem(warning) {
   `;
 }
 
+export function renderTodoBadges({ dueDate = "", cost = "", currency = "USD", subtodoCount = 0, hideSubtodoCount = false, className = "todo-badges" }) {
+  const badges = [];
+  if (dueDate) {
+    badges.push(`<span class="todo-due-badge ${escapeHtml(getTodoDueBucket(dueDate) || "due-later")}">${escapeHtml(formatTodoDueDate(dueDate))}</span>`);
+  }
+  if (cost) {
+    badges.push(`<span class="todo-cost-badge">${escapeHtml(formatCostAmount(cost, currency))}</span>`);
+  }
+  if (!hideSubtodoCount && subtodoCount) {
+    badges.push(`<span class="subtodo-count">${subtodoCount} sub</span>`);
+  }
+  return badges.length ? `<div class="${escapeHtml(className)}">${badges.join("")}</div>` : "";
+}
+
 export function renderTodoItem(todo, subtodos = getSubtodos(todo)) {
   const allSubtodos = getSubtodos(todo);
   const isExpanded = isTodoExpanded(todo.id);
@@ -1140,20 +1259,35 @@ export function renderTodoItem(todo, subtodos = getSubtodos(todo)) {
         <button class="todo-expand-button" data-todo-action="expand" data-id="${todo.id}" type="button" aria-expanded="${isExpanded}" aria-label="${isExpanded ? "Collapse subtodos" : "Expand subtodos"}">
           ${isExpanded ? "-" : "+"}
         </button>
-        <span class="todo-drag-handle" aria-hidden="true">Drag</span>
+        <button class="todo-drag-handle" data-drag-handle="todo" data-id="${todo.id}" type="button" aria-label="Reorder todo">
+          <span aria-hidden="true">&#8801;</span>
+        </button>
         ${
           isEditing
-            ? renderTodoEditForm(todo)
+            ? `<div class="todo-text-block todo-edit-block">${renderTodoEditForm(todo)}</div>`
             : `
-              <label title="${canCheckParent ? "" : "Complete all subtodos before checking this off."}">
-                <input data-todo-action="toggle" data-id="${todo.id}" type="checkbox" ${todo.done ? "checked" : ""} ${canCheckParent ? "" : "disabled"} />
-                <button class="todo-text-button" data-todo-action="edit" data-id="${todo.id}" type="button">${escapeHtml(todo.text)}</button>
-              </label>
+              <div class="todo-text-block">
+                <label title="${canCheckParent ? "" : "Complete all subtodos before checking this off."}">
+                  <input data-todo-action="toggle" data-id="${todo.id}" type="checkbox" ${todo.done ? "checked" : ""} ${canCheckParent ? "" : "disabled"} />
+                  <button class="todo-text-button" data-todo-action="edit" data-id="${todo.id}" type="button">${escapeHtml(todo.text)}</button>
+                </label>
+                ${renderTodoBadges({
+                  dueDate: todo.dueDate,
+                  cost: todo.cost,
+                  currency: todo.currency,
+                  subtodoCount: subtodos.length,
+                  className: "todo-badges todo-badges-inline",
+                })}
+              </div>
+              ${renderTodoBadges({
+                dueDate: todo.dueDate,
+                cost: todo.cost,
+                currency: todo.currency,
+                subtodoCount: subtodos.length,
+                className: "todo-meta",
+              })}
             `
         }
-        ${!isEditing && todo.dueDate ? `<span class="todo-due-badge ${escapeHtml(getTodoDueBucket(todo.dueDate) || "due-later")}">${escapeHtml(formatTodoDueDate(todo.dueDate))}</span>` : ""}
-        ${!isEditing && todo.cost ? `<span class="todo-cost-badge">${escapeHtml(formatCostAmount(todo.cost, todo.currency))}</span>` : ""}
-        ${!isEditing && subtodos.length ? `<span class="subtodo-count">${subtodos.length} sub</span>` : ""}
         ${!isEditing ? `<button class="icon-button todo-delete-button" data-todo-action="delete" data-id="${todo.id}" type="button" aria-label="Delete todo">x</button>` : ""}
       </div>
       <div class="subtodo-panel" ${isExpanded ? "" : "hidden"}>
@@ -1182,19 +1316,35 @@ export function renderSubtodoItem(parentId, subtodo) {
   const isEditing = state.editingSubtodo?.parentId === parentId && state.editingSubtodo?.id === subtodo.id;
   return `
     <div class="subtodo-item ${subtodo.done ? "done" : ""} ${isEditing ? "editing" : ""}" draggable="true" data-parent-id="${parentId}" data-subtodo-id="${subtodo.id}">
-      <span class="todo-drag-handle" aria-hidden="true">Drag</span>
+      <button class="todo-drag-handle" data-drag-handle="subtodo" data-id="${subtodo.id}" data-parent-id="${parentId}" type="button" aria-label="Reorder sub todo">
+        <span aria-hidden="true">&#8801;</span>
+      </button>
       ${
         isEditing
-          ? renderSubtodoEditForm(parentId, subtodo)
+          ? `<div class="todo-text-block todo-edit-block">${renderSubtodoEditForm(parentId, subtodo)}</div>`
           : `
-            <label>
-              <input data-subtodo-action="toggle" data-parent-id="${parentId}" data-id="${subtodo.id}" type="checkbox" ${subtodo.done ? "checked" : ""} />
-              <button class="todo-text-button" data-subtodo-action="edit" data-parent-id="${parentId}" data-id="${subtodo.id}" type="button">${escapeHtml(subtodo.text)}</button>
-            </label>
+            <div class="todo-text-block">
+              <label>
+                <input data-subtodo-action="toggle" data-parent-id="${parentId}" data-id="${subtodo.id}" type="checkbox" ${subtodo.done ? "checked" : ""} />
+                <button class="todo-text-button" data-subtodo-action="edit" data-parent-id="${parentId}" data-id="${subtodo.id}" type="button">${escapeHtml(subtodo.text)}</button>
+              </label>
+              ${renderTodoBadges({
+                dueDate: subtodo.dueDate,
+                cost: subtodo.cost,
+                currency: subtodo.currency,
+                hideSubtodoCount: true,
+                className: "todo-badges todo-badges-inline",
+              })}
+            </div>
+            ${renderTodoBadges({
+              dueDate: subtodo.dueDate,
+              cost: subtodo.cost,
+              currency: subtodo.currency,
+              hideSubtodoCount: true,
+              className: "todo-meta",
+            })}
           `
       }
-      ${!isEditing && subtodo.dueDate ? `<span class="todo-due-badge ${escapeHtml(getTodoDueBucket(subtodo.dueDate) || "due-later")}">${escapeHtml(formatTodoDueDate(subtodo.dueDate))}</span>` : ""}
-      ${!isEditing && subtodo.cost ? `<span class="todo-cost-badge">${escapeHtml(formatCostAmount(subtodo.cost, subtodo.currency))}</span>` : ""}
       ${!isEditing ? `<button class="icon-button todo-delete-button" data-subtodo-action="delete" data-parent-id="${parentId}" data-id="${subtodo.id}" type="button" aria-label="Delete sub todo">x</button>` : ""}
     </div>
   `;
@@ -1434,11 +1584,91 @@ export function bindTodoActions(container) {
       reorderSubtodo(item.dataset.parentId, event.dataTransfer.getData("text/plain"), item.dataset.subtodoId, position);
     });
   });
+
+  bindTodoTouchDrag(container);
 }
 
 export function getTodoDropPosition(event, item) {
   const rect = item.getBoundingClientRect();
   return event.clientY > rect.top + rect.height / 2 ? "after" : "before";
+}
+
+export function bindTodoTouchDrag(container) {
+  container.querySelectorAll("[data-drag-handle]").forEach((handle) => {
+    handle.addEventListener("touchstart", (event) => startTodoTouchDrag(event, handle, container), { passive: false });
+    handle.addEventListener("touchmove", (event) => moveTodoTouchDrag(event, container), { passive: false });
+    handle.addEventListener("touchend", () => endTodoTouchDrag(container));
+    handle.addEventListener("touchcancel", () => cancelTodoTouchDrag(container));
+  });
+}
+
+export function startTodoTouchDrag(event, handle, container) {
+  const touch = event.touches[0];
+  if (!touch) return;
+  const kind = handle.dataset.dragHandle;
+  const item = kind === "todo"
+    ? handle.closest(".todo-item[data-todo-id]")
+    : handle.closest(".subtodo-item[data-subtodo-id]");
+  if (!item) return;
+  event.preventDefault();
+  clearTodoTouchClasses(container);
+  item.classList.add("dragging");
+  todoTouchDragState = {
+    kind,
+    draggedId: kind === "todo" ? item.dataset.todoId : item.dataset.subtodoId,
+    parentId: item.dataset.parentId || "",
+    draggedElement: item,
+    targetElement: null,
+    position: "after",
+  };
+}
+
+export function moveTodoTouchDrag(event, container) {
+  if (!todoTouchDragState) return;
+  const touch = event.touches[0];
+  if (!touch) return;
+  event.preventDefault();
+  const hovered = document.elementFromPoint(touch.clientX, touch.clientY);
+  if (!hovered) return;
+  const selector = todoTouchDragState.kind === "todo"
+    ? ".todo-item[data-todo-id]"
+    : ".subtodo-item[data-subtodo-id]";
+  const target = hovered.closest(selector);
+  if (!target || target === todoTouchDragState.draggedElement) return;
+  if (todoTouchDragState.kind === "subtodo" && target.dataset.parentId !== todoTouchDragState.parentId) return;
+  clearTodoTouchClasses(container);
+  const position = getTodoDropPosition({ clientY: touch.clientY }, target);
+  target.classList.toggle("drag-over-before", position === "before");
+  target.classList.toggle("drag-over-after", position === "after");
+  todoTouchDragState.draggedElement.classList.add("dragging");
+  todoTouchDragState.targetElement = target;
+  todoTouchDragState.position = position;
+}
+
+export function endTodoTouchDrag(container) {
+  if (!todoTouchDragState) return;
+  const { kind, draggedId, parentId, targetElement, position } = todoTouchDragState;
+  if (targetElement) {
+    if (kind === "todo") {
+      reorderTodo(draggedId, targetElement.dataset.todoId, position);
+    } else {
+      reorderSubtodo(parentId, draggedId, targetElement.dataset.subtodoId, position);
+    }
+  } else {
+    clearTodoTouchClasses(container);
+  }
+  todoTouchDragState = null;
+}
+
+export function cancelTodoTouchDrag(container) {
+  clearTodoTouchClasses(container);
+  todoTouchDragState = null;
+}
+
+export function clearTodoTouchClasses(container) {
+  container.querySelectorAll(".todo-item, .subtodo-item").forEach((row) => {
+    row.classList.remove("dragging", "drag-over-before", "drag-over-after");
+  });
 }
 
 export function isTodoExpanded(id) {
