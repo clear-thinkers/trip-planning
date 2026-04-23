@@ -1830,6 +1830,12 @@ button:focus-visible {
   #listView .timeline-time {
     padding-top: 0;
   }
+
+}
+
+#dayView .day-detail-alerts {
+  margin-top: 8px;
+  margin-bottom: 40px;
 }
 
 @media (max-width: 720px) {

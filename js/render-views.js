@@ -549,7 +549,7 @@ export function renderDayView() {
       </div>
       ${
         warnings.length
-          ? `<div class="alerts">${warnings.map((warning) => `<div class="alert"><strong>${escapeHtml(warning.type)}</strong><span>${escapeHtml(warning.message)}</span></div>`).join("")}</div>`
+          ? `<div class="alerts day-detail-alerts">${warnings.map((warning) => `<div class="alert"><strong>${escapeHtml(warning.type)}</strong><span>${escapeHtml(warning.message)}</span></div>`).join("")}</div>`
           : ""
       }
       ${

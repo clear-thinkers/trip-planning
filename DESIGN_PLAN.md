@@ -522,6 +522,8 @@ The current implementation stays intentionally lightweight:
 
 The PWA layer adds no build step or dependency. The service worker pre-caches all app assets at install time using a cache-first strategy. When a new version deploys, the activate handler notifies open windows so a visible update banner can prompt the user to reload.
 
+**Cache busting:** Because the strategy is cache-first, any change to a cached asset (CSS, JS, HTML) will not be visible in the browser until the `CACHE` constant in `sw.js` is bumped to a new version string (e.g. `"trip-planner-v3"` → `"trip-planner-v4"`). The old service worker's activate handler deletes the previous cache, so the next page load fetches fresh files. Always bump the cache version alongside any front-end asset change, or the browser will silently serve stale files.
+
 HTTPS is required in production for service workers and the home screen install prompt. The local `http://localhost` dev server bypasses this restriction for development.
 
 This keeps the app easy to inspect and edit while the workflow model is still evolving.
