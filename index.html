@@ -31,6 +31,10 @@
       </header>
 
       <main>
+        <div class="alert" id="bootWarning" style="margin: 0 auto 16px; max-width: 1440px;">
+          <strong>Local server needed</strong>
+          <span>This app now uses browser ES modules. Open it through `http://localhost`, not directly from `file:///...`. Run `node serve-local.mjs` in this folder, then open the local URL it prints.</span>
+        </div>
         <section class="trips-page" id="tripsPage" aria-label="Saved trips">
           <div class="section-header">
             <div>
@@ -66,6 +70,8 @@
             <button class="tab-button active" data-view="calendar" type="button">Calendar</button>
             <button class="tab-button" data-view="list" type="button">List</button>
             <button class="tab-button" data-view="day" type="button">Day detail</button>
+            <button class="tab-button" data-view="planning" type="button">Planning Todos</button>
+            <button class="tab-button" data-view="packing" type="button">Packing</button>
             <button class="tab-button" data-view="costs" type="button">Costs</button>
             <button class="tab-button" data-view="controls" type="button">Controls</button>
           </nav>
@@ -92,6 +98,8 @@
               <p class="field-hint">Select one or more statuses.</p>
             </div>
             <div class="field search-field">
+              <label for="costAmountFilter" id="costAmountFilterLabel" hidden>Price amount</label>
+              <input id="costAmountFilter" type="number" min="0" step="0.01" placeholder="Amount" hidden />
               <label for="searchInput">Search</label>
               <input id="searchInput" type="search" placeholder="Title, city, people, notes" />
             </div>
@@ -99,11 +107,13 @@
 
           <section class="alerts" id="alerts" aria-live="polite"></section>
 
-          <section class="content-grid">
+          <section class="content-grid" id="contentGrid">
             <div class="main-panel">
               <section class="view-panel active" id="calendarView" aria-label="Calendar view"></section>
               <section class="view-panel" id="listView" aria-label="List view"></section>
               <section class="view-panel" id="dayView" aria-label="Day detail view"></section>
+              <section class="view-panel" id="planningView" aria-label="Planning todos"></section>
+              <section class="view-panel" id="packingView" aria-label="Packing"></section>
               <section class="view-panel" id="costsView" aria-label="Costs"></section>
               <section class="view-panel" id="controlsView" aria-label="Controls"></section>
             </div>
@@ -242,6 +252,71 @@
       </form>
     </dialog>
 
-    <script src="app.js"></script>
+    <dialog class="item-dialog" id="packItemDialog">
+      <form method="dialog" id="packItemForm" class="item-form">
+        <div class="dialog-header">
+          <div>
+            <p class="eyebrow" id="packDialogEyebrow">Packing list</p>
+            <h2 id="packDialogTitle">Add packing item</h2>
+          </div>
+          <button class="icon-button" id="closePackDialogButton" type="button" aria-label="Close">x</button>
+        </div>
+
+        <input id="packItemId" type="hidden" />
+
+        <div class="form-grid">
+          <div class="field span-two">
+            <label for="packItemTitle">Title</label>
+            <input id="packItemTitle" type="text" required />
+          </div>
+          <div class="field">
+            <label for="packItemCategory">Category</label>
+            <select id="packItemCategory" required></select>
+          </div>
+          <div class="field">
+            <label for="packItemSubCategory">Sub-category</label>
+            <select id="packItemSubCategory"></select>
+          </div>
+          <div class="field">
+            <label for="packItemStatus">Status</label>
+            <select id="packItemStatus" required></select>
+          </div>
+          <div class="field">
+            <label for="packItemQuantity">Quantity</label>
+            <input id="packItemQuantity" type="number" min="1" step="1" value="1" />
+          </div>
+          <div class="field">
+            <label for="packItemTags">Tags</label>
+            <select id="packItemTags" multiple size="5"></select>
+            <p class="field-hint">Use Ctrl or Cmd to tag who this item belongs to.</p>
+          </div>
+          <div class="field">
+            <label for="packItemBag">Bag</label>
+            <select id="packItemBag"></select>
+          </div>
+          <div class="field">
+            <label for="packItemCost">Cost</label>
+            <div class="cost-input-row">
+              <input id="packItemCost" type="number" min="0" step="0.01" />
+              <select id="packItemCurrency" aria-label="Packing item currency"></select>
+            </div>
+          </div>
+          <div class="field span-two">
+            <label for="packItemNotes">Notes</label>
+            <textarea id="packItemNotes" rows="4"></textarea>
+          </div>
+        </div>
+
+        <div class="dialog-actions">
+          <button class="danger-button" id="deletePackItemButton" type="button">Delete</button>
+          <div class="dialog-action-group">
+            <button class="secondary-button" id="cancelPackItemButton" type="button">Cancel</button>
+            <button class="primary-button" type="submit">Save item</button>
+          </div>
+        </div>
+      </form>
+    </dialog>
+
+    <script type="module" src="app.js"></script>
   </body>
 </html>

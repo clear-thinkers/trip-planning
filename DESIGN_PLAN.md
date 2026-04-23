@@ -1,82 +1,114 @@
 # Trip Planning App Design Plan
 
-This document is the current design record for the local-first trip planner implemented in `index.html`, `styles.css`, and `app.js`.
+This document is the current design record for the local-first trip planner implemented in `index.html`, `styles.css`, `app.js`, and the modular files under `js/`.
 
 ## 1. Product Goal
 
-Build a personal planning app that keeps the full trip picture in one place:
+Build a personal planning app that keeps the full pre-trip workflow in one place:
 
 - itinerary items across days and cities
-- planning warnings that help catch problems before the trip
-- a trip-wide checklist for prep work such as gifts, packing, and errands
-- cost tracking across both travel plans and checklist purchases
+- prep work tracked as planning todos
+- packing work tracked separately from itinerary scheduling
+- warnings that surface planning risks without blocking progress
+- cost tracking across travel plans, planning tasks, and packing purchases
 
-The app should support both macro review and detailed cleanup:
+The app should support both overview and cleanup:
 
-- Macro: see the trip across weeks, dates, and anchor events.
-- Micro: inspect one day, one item, one todo, or one cost breakdown without losing the overall context.
+- Overview: review trip shape across calendar weeks, cost summaries, and packing progress.
+- Cleanup: inspect one day, one todo, one bag, or one item without losing context.
 
-## 2. Current Workspace Model
+## 2. Current App Architecture
 
-The app opens to Saved Trips and then into a trip workspace. The trip workspace currently includes:
+The app now runs as a browser ES module app served from `http://localhost`.
+
+Current file roles:
+
+- `app.js`: top-level render loop and screen coordination
+- `js/init.js`: element caching, select population, event binding
+- `js/state.js`: normalization, defaults, sample data, persistence
+- `js/render-views.js`: trips, itinerary views, planning todos, costs, controls, printing, import/export
+- `js/render-packing.js`: packing list, bag planner, packing dialogs, packing controls
+- `js/data.js`: derived trip data, filters, costs, packing progress
+- `js/warnings.js`: trip and packing warning generation
+- `js/format.js`: formatting, ids, date helpers, escaping
+- `js/constants.js`: item types, statuses, currencies, timezones, default packing categories
+- `js/render-shared.js`: shared UI fragments such as status icons and item styling
+
+The design goal of the reorg is to keep each major workflow editable without returning to a single giant file.
+
+## 3. Workspace Model
+
+The app opens to Saved Trips and then into a trip workspace.
+
+The current workspace includes:
 
 1. Saved Trips
-   - Create, open, reset, and delete trips.
-   - Supports multiple locally stored trips.
+   - Create, open, reset, delete, export, and import trips.
+   - Supports multiple trips in local storage.
 
 2. Calendar View
-   - Default screen after opening a trip.
-   - Shows the trip across calendar weeks.
-   - Calendar items are draggable to a different start date.
+   - Default view after opening a trip.
+   - Shows itinerary items across calendar weeks.
+   - Supports drag-and-drop to move an item's start date.
 
 3. List View
    - Chronological itinerary grouped by date.
-   - Good for practical review of reservations, notes, and timing.
 
 4. Day Detail View
-   - Focuses on one selected day.
-   - Shows the day's items in order and surfaces day-specific warnings.
+   - Focuses on one selected day and its warnings.
 
-5. Costs View
-   - Aggregates travel-plan costs and checklist costs.
-   - Supports currency normalization into the user's selected display currency.
+5. Planning Todos View
+   - Dedicated trip-wide checklist workspace.
+   - Includes a due-date calendar plus the editable checklist itself.
 
-6. Controls View
-   - Lets the user customize trip-specific item type colors.
+6. Packing View
+   - Dedicated packing workspace.
+   - Includes a packing list mode and a bag planner mode.
 
-7. Right Sidebar
-   - Selected Day panel
-   - Planning Todos panel
-   - Warnings panel
+7. Costs View
+   - Aggregates travel, planning, and packing costs.
 
-## 3. Core User Experience
+8. Controls View
+   - Contains item color controls plus packing setup controls.
 
-The current flow is:
+9. Right Sidebar
+   - Shown only on Calendar, List, and Day Detail views.
+   - Contains Selected Day plus the warnings panel.
+
+## 4. Core User Experience
+
+The intended flow is:
 
 1. Create or open a saved trip.
 2. Land in Calendar View.
-3. Add fixed anchors first: flights, lodging, major visits, key appointments.
-4. Add flexible items: meals, activities, transit, rest, reminders, lessons.
-5. Use the sidebar checklist to track prep work for the whole trip.
-6. Review warnings and cost totals as planning gets more detailed.
-7. Use List or Day Detail views for practical sequencing and cleanup.
-8. Use Controls to tune color coding for easier scanning.
+3. Add fixed anchors first: flights, lodging, major visits, appointments, reservations.
+4. Add flexible itinerary items: meals, activities, transit, rest, reminders, lessons.
+5. Use Planning Todos for prep work with due dates, nested steps, and optional costs.
+6. Use Packing to build item lists, categorize gear, and assign things to bags.
+7. Review warnings and cost totals as the plan becomes more concrete.
+8. Use Controls to tune item colors and packing structure.
+9. Print the calendar as a PDF when a paper-like overview is useful.
 
-The design intent is direct utility: the first screen should be usable immediately, and editing should stay lightweight.
+The design intent stays practical: quick entry, low ceremony, warnings that guide rather than block, and clear separation between itinerary planning, prep tasks, and packing.
 
-## 4. Current Feature Scope
+## 5. Current Feature Scope
 
 Implemented:
 
 - multi-trip local planning
+- modular ES module app structure
 - add, edit, copy, and delete itinerary items
-- calendar/list/day/costs/controls views
-- trip-wide checklist with nested subtodos
-- warnings panel under Planning Todos
-- cost tracking for itinerary items, todos, and subtodos
-- calendar drag-and-drop for moving an item's start date
+- calendar, list, day, planning, packing, costs, and controls views
+- contextual filters that change by active view
+- trip-wide planning checklist with nested subtodos, due dates, and inline editing
+- dedicated packing planner with categories, bags, and bag assignment
+- warnings panel plus selected-day context
+- cost tracking for itinerary items, todos, subtodos, and packing items
+- calendar drag-and-drop for itinerary date changes
+- drag-to-reorder for todos, subtodos, bags, categories, and sub-categories where relevant
 - JSON export/import
-- print-friendly calendar output
+- file-storage recovery helper for old `file:///` usage
+- print-friendly calendar output with status legend
 - typed confirmations for destructive actions
 
 Explicitly not in scope right now:
@@ -86,9 +118,9 @@ Explicitly not in scope right now:
 - collaboration
 - mobile native packaging
 - live exchange-rate lookup
-- automatic Apple Reminders integration
+- automatic reminders/calendar integrations
 
-## 5. Information Architecture
+## 6. Information Architecture
 
 ### Trip
 
@@ -104,27 +136,26 @@ Fields:
 - `notes`
 - `itemTypeColors`
 - `costSettings`
+- `items`
 - `todos`
-- `createdAt`
-- `updatedAt`
+- `packCategories`
+- `packItems`
+- `bags`
 
-`itemTypeColors` stores a per-trip mapping from item type to hex color. Missing or invalid values fall back to the default palette.
+`itemTypeColors` stores per-trip item stripe colors.
 
 `costSettings` currently stores:
 
 - `displayCurrency`
 - `usdToRmbRate`
 
-`todos` stores a trip-wide checklist rather than day-specific tasks.
-
 ### Itinerary Item
 
-Each itinerary card in calendar/list/day views is an itinerary item.
+Each calendar/list/day card is an itinerary item.
 
 Core fields:
 
 - `id`
-- `tripId`
 - `type`
 - `title`
 - `startDateTime`
@@ -136,23 +167,26 @@ Core fields:
 - `allDay`
 - `startTimezone`
 - `endTimezone`
+- `departureCity`
+- `arrivalCity`
+- `airline`
 - `city`
 - `location`
 - `status`
+- `priority`
 - `notes`
+- `links`
+- `attachments`
 - `confirmationCode`
 - `cost`
 - `currency`
 - `people`
+- `tags`
+- `source`
 - `createdAt`
 - `updatedAt`
 
-Supported currencies are currently:
-
-- `USD`
-- `RMB`
-
-Supported statuses are currently:
+Supported itinerary statuses:
 
 - `Idea`
 - `Planned`
@@ -163,67 +197,101 @@ Supported statuses are currently:
 
 ### Todo
 
-Checklist todos are stored at the trip level.
+Planning todos are stored at the trip level.
 
 Fields:
 
 - `id`
 - `text`
-- `checked`
+- `done`
 - `order`
+- `dueDate`
 - `cost`
 - `currency`
 - `subtodos`
+- `createdAt`
+- `updatedAt`
 
 ### Subtodo
 
-Nested subtodos use the same basic structure as parent todos.
+Nested subtodos use the same main task model in smaller form.
 
 Fields:
 
 - `id`
 - `text`
-- `checked`
+- `done`
 - `order`
+- `dueDate`
 - `cost`
 - `currency`
+- `createdAt`
+- `updatedAt`
 
 Behavior rules:
 
 - parent todos can expand/collapse
 - parent and child rows can both be dragged to reorder
-- text is edited inline by clicking the text
-- a parent todo can only be checked when all subtodos are checked
+- text, cost, currency, and due date are edited inline
+- a parent todo can only be completed when all subtodos are done
 
-## 6. Item Types and Default Colors
+### Packing Item
 
-Current supported item types:
+Packing items are separate from itinerary items.
 
-- Flight
-- Hotel
-- Activity
-- Family Visit
-- Meal
-- Transit
-- Rest
-- Reminder
-- Lesson
-- Custom
+Fields:
 
-Current default colors:
+- `id`
+- `title`
+- `categoryId`
+- `subCategoryId`
+- `status`
+- `quantity`
+- `tags`
+- `bagId`
+- `cost`
+- `currency`
+- `notes`
+- `order`
+- `createdAt`
+- `updatedAt`
 
-- Flight: `#b84a4a`
-- Hotel: `#2563eb`
-- Activity: `#2f6f73`
-- Family Visit: `#4d7c8a`
-- Meal: `#7c3aed`
-- Transit: `#b88a2d`
-- Rest: `#16a34a`
-- Reminder: `#2f6f73`
-- Lesson: `#8b5e34`
-- Custom: `#2f6f73`
+Supported packing statuses:
 
-These colors are user-editable per trip in Controls.
+- `Idea`
+- `Purchased`
+- `Packed`
+
+### Packing Category
+
+Packing categories are a two-level tree used by the packing list.
+
+Fields:
+
+- `id`
+- `label`
+- `icon`
+- `order`
+- `subcategories`
+
+Each sub-category includes:
+
+- `id`
+- `label`
+- `order`
+
+### Bag
+
+Bags support assignment and overview in the bag planner.
+
+Fields:
+
+- `id`
+- `label`
+- `size`
+- `weightLimit`
+- `color`
+- `order`
 
 ## 7. View Design
 
@@ -231,27 +299,28 @@ These colors are user-editable per trip in Controls.
 
 The app aims for:
 
-- clean, calm planning surfaces
-- high information density without looking cramped
-- semantic color coding that helps scanning
-- small, obvious controls instead of hidden gestures where possible
+- calm, information-dense planning surfaces
+- straightforward controls over hidden gestures
+- semantic color coding for scanning
+- clear separation between itinerary, prep tasks, and packing logistics
 
-The palette still centers on white surfaces, soft gray backgrounds, teal primary actions, and semantic item-type stripes.
+The palette still centers on white surfaces, soft gray structure, teal primary actions, and semantic accent colors.
 
 ### Calendar View
 
 Purpose:
 
 - Review the trip across dates.
-- Spot density, conflicts, and missing structure.
+- Spot density, missing anchors, and conflicts quickly.
 
 Current behavior:
 
-- Shows trip items in calendar cells.
-- Supports drag-and-drop of calendar items onto a different day.
-- Keeps the original time and preserves multi-day span length.
-- Uses trip-specific item type colors.
-- Hides the old top warnings strip.
+- shows itinerary items in calendar cells
+- supports drag-and-drop date moves
+- preserves original time and multi-day span
+- uses trip-specific item type colors
+- supports print-to-PDF output
+- printed calendar includes a status legend with Chinese descriptions for each status icon
 
 ### List View
 
@@ -261,9 +330,9 @@ Purpose:
 
 Current behavior:
 
-- Groups items by date.
-- Uses the same item-type color coding as Calendar View and Controls.
-- Warning styling no longer overrides the item-type stripe color.
+- groups items by date
+- uses the same item-type color coding as Calendar and Day Detail
+- includes a separate TBD / unscheduled section
 
 ### Day Detail View
 
@@ -273,63 +342,78 @@ Purpose:
 
 Current behavior:
 
-- Shows day-specific items in order.
-- Surfaces day warnings inline.
-- Works with the Selected Day sidebar context.
+- shows day-specific items in order
+- surfaces day warnings inline
+- works with the Selected Day sidebar context
 
-### Selected Day Sidebar Panel
+### Selected Day Sidebar
 
 Purpose:
 
-- Keep the currently selected day visible while navigating the trip.
+- Keep the currently selected day visible while navigating itinerary views.
 
 Current behavior:
 
-- shows the selected date and city
-- shows item count and warning count
+- shown on Calendar, List, and Day Detail views only
+- shows selected date and primary city
+- shows item count and day-specific warning count
 - lists that day's itinerary cards
+- offers quick actions to add to the day or jump to Day Detail
 
-### Planning Todos Sidebar Panel
+### Warnings Panel
 
 Purpose:
 
-- Track trip prep work that is not tied to a specific date.
+- Keep planning issues visible without dominating the main workspace.
 
 Current behavior:
 
-- trip-wide checklist under Selected Day
-- add parent todos
+- lives in the sidebar below Selected Day
+- collapsed by default
+- shows total warning count
+- expands to reveal full warning list
+
+### Planning Todos View
+
+Purpose:
+
+- Track trip prep work that is not scheduled as itinerary.
+
+Current behavior:
+
+- due-date calendar above the checklist
+- add parent todos with optional cost and due date
 - add nested subtodos
 - drag-to-reorder parent and child items
-- inline edit by clicking text
-- optional cost and currency on parent and child items
-- collapsed parent rows show child count
+- inline editing for text, cost, currency, and due date
+- filters for open/done state and due-date bucket
 
-### Warnings Sidebar Panel
+### Packing View
 
 Purpose:
 
-- Keep warnings accessible without taking over the main views.
+- Separate what needs to be packed from what needs to be scheduled.
 
 Current behavior:
 
-- lives below Planning Todos
-- collapsed by default
-- shows total warning count when collapsed
-- expands to reveal the full warning list
+- two subviews: Packing list and Bag planner
+- packing list groups items by category and sub-category
+- quick-add within categories plus full packing item dialog
+- status cycling between idea, purchased, and packed
+- optional quantity, tags, bag assignment, notes, and cost
+- bag planner supports drag-and-drop bag assignment
+- bag columns show progress and total tracked bag cost
 
 ### Costs View
 
 Purpose:
 
-- Roll up spending tracked during planning.
+- Roll up planning-related spending in one place.
 
 Current behavior:
 
-- summary cards for total tracked, travel plans, and checklist todos
-- detailed Travel costs section
-- detailed Checklist costs section
-- color-coded summaries and lighter matching section backgrounds
+- summary cards for total tracked, travel plans, planning todos, and packing items
+- detailed breakdown sections for all three cost sources
 - display currency selector
 - editable USD/RMB exchange rate
 - normalized totals and row display in the selected currency
@@ -338,34 +422,37 @@ Current behavior:
 
 Purpose:
 
-- Let users tune scanning colors without editing each item manually.
+- Let users tune the planning system without editing data structures manually.
 
 Current behavior:
 
-- one row per item type
-- color picker and hex input
-- changes apply immediately to calendar, list, day, and selected day cards
+- item type color controls with color picker and hex input
+- reset per type or reset all
+- bag controls for label, size, weight limit, and color
+- editable packing category and sub-category tree
 
 ## 8. Filters and Search
 
-Current filter behavior:
+Current filter behavior is view-specific:
 
-- Type and Status support multi-select filtering
-- both filters have explicit expand/collapse buttons
-- selected values use a light teal pill treatment
-- Search aligns visually with the Type and Status controls
+- itinerary views use multi-select Type and Status filters plus Search
+- planning view reuses those controls as Todo status and Due date filters
+- packing view reuses them as Packing status and Tags filters
+- costs view reuses them as Price rule, Currency, Amount, and Search controls
 
-This design favors clarity over hover-only behavior.
+This keeps one shared filter area while adapting it to the current task.
 
 ## 9. Planning Intelligence
 
 Current warnings include:
 
-- overlapping timed items
-- missing locations for relevant items
-- tight transitions
+- overlapping timed itinerary items
+- missing locations for relevant itinerary types
+- tight transitions between timed items in different places
 - lodging gaps
 - fully TBD or time-only TBD date/time fields
+- unpacked packing items within three days of trip start
+- packing items not assigned to a bag when bags exist
 
 Warnings are meant to guide planning, not block saving.
 
@@ -375,14 +462,17 @@ Current editing principles:
 
 - allow incomplete ideas to exist
 - keep warnings non-blocking
-- use inline editing where it feels lighter than modal-heavy editing
-- keep drag-and-drop only where it is intuitive and stable
+- use inline editing where it reduces friction
+- reserve dialogs for objects with many fields
+- keep drag-and-drop limited to interactions that feel obvious
 
 Examples already implemented:
 
-- click-to-edit todo text
-- drag-and-drop calendar date changes
-- drag-and-drop todo ordering
+- modal editing for itinerary items and packing items
+- inline editing for todos and subtodos
+- drag-and-drop itinerary date changes
+- drag-and-drop todo and subtodo ordering
+- drag-and-drop bag assignment in the packing planner
 
 ## 11. Data Storage
 
@@ -392,12 +482,16 @@ Current storage model:
 
 - browser `localStorage`
 - JSON export/import for backup and transfer
+- `recover-file-storage.html` for migrating old `file:///` local storage into the served app
 
 Export/import should preserve:
 
 - itinerary items
-- todo hierarchy
-- todo ordering
+- planning todo hierarchy
+- planning todo ordering
+- packing items
+- packing categories
+- bags
 - item type colors
 - cost settings
 
@@ -407,25 +501,28 @@ To reduce accidental data loss:
 
 - `Reset data` requires typing `RESET`
 - `Delete` trip requires typing `DELETE`
+- deleting bags or packing categories warns before items are left unassigned or moved to General
 
 These confirmations are intentionally stronger than a simple click-through warning.
 
 ## 13. Tech Direction
 
-The current implementation remains intentionally simple:
+The current implementation stays intentionally lightweight:
 
-- `index.html` for structure
-- `styles.css` for layout, visual styling, filters, checklist, and print rules
-- `app.js` for state, rendering, persistence, warnings, drag-and-drop, filters, costs, and controls
+- static HTML and CSS
+- browser-native modules instead of a framework build step
+- local persistence instead of backend storage
+- rendering organized by workflow rather than by framework convention
 
-This keeps the app easy to inspect and edit while the interaction model is still evolving.
+This keeps the app easy to inspect and edit while the workflow model is still evolving.
 
 ## 14. Next Useful Enhancements
 
 Likely future improvements:
 
 - richer budgeting summaries beyond total tracked
-- optional export formats for checklist data
-- better mobile ergonomics for dense planning screens
-- more calendar editing controls beyond moving start date
+- optional export formats for planning and packing lists
+- better mobile ergonomics for dense views
+- richer itinerary editing beyond moving start date
+- smarter packing warnings and bag-weight logic
 - optional integrations after the local workflow feels stable
