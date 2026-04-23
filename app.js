@@ -49,3 +49,7 @@ document.addEventListener("DOMContentLoaded", () => {
   state.selectedDate = state.trip?.startDate || null;
   render();
 });
+
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./sw.js");
+}
