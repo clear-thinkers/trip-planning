@@ -10,6 +10,14 @@ import { bindPackingActions, getPackingFilterTagOptions, renderPackingControls }
 const render = requestRender;
 const MOBILE_BREAKPOINT = 768;
 let todoTouchDragState = null;
+const CALENDAR_STATUS_LEGEND_DETAILS = {
+  Idea: "Early concept that is still flexible and not locked in yet.",
+  Planned: "Added to the itinerary with the timing or plan mostly decided.",
+  Booked: "Reservation or purchase has been made for this item.",
+  Confirmed: "Details have been rechecked and the item is ready to happen.",
+  Done: "This itinerary item has already happened.",
+  Skipped: "Considered for the trip, but intentionally not happening now.",
+};
 
 export function isMobileViewport() {
   return window.innerWidth <= MOBILE_BREAKPOINT;
@@ -407,18 +415,31 @@ export function renderWeekGroupedItinerary(options = {}) {
 
 export function renderMobileCalendar() {
   const weeks = groupDatesByMondayWeek(eachTripDate());
-  return renderWeekGroupedItinerary({
-    dates: weeks.flatMap((week) => week.dates),
-    eyebrow: "Calendar week",
-    listClass: "mobile-calendar-list",
-    sectionClass: "mobile-week-block",
-    showActions: true,
-  });
+  return `
+    ${renderPrintCalendarHeader()}
+    ${renderWeekGroupedItinerary({
+      dates: weeks.flatMap((week) => week.dates),
+      eyebrow: "Calendar week",
+      listClass: "mobile-calendar-list",
+      sectionClass: "mobile-week-block",
+      showActions: true,
+    })}
+  `;
+}
+
+export function renderPrintCalendarHeader() {
+  return `
+    <div class="print-calendar-header">
+      <p class="eyebrow">Calendar PDF</p>
+      <h2>${escapeHtml(state.trip.title)}</h2>
+      <p>${escapeHtml(formatDateShort(state.trip.startDate))} - ${escapeHtml(formatDateShort(state.trip.endDate))}</p>
+    </div>
+  `;
 }
 
 export function renderCalendarStatusLegend() {
   const statusLegend = STATUSES.map((status) => {
-    const description = STATUS_LEGEND_DETAILS[status] || "";
+    const description = CALENDAR_STATUS_LEGEND_DETAILS[status] || "";
     return `
       <div class="calendar-status-legend-item">
         ${renderStatusIcon(status)}
@@ -481,7 +502,7 @@ export function renderCalendar() {
     `;
   });
   const statusLegend = STATUSES.map((status) => {
-    const description = STATUS_LEGEND_DETAILS[status] || "";
+    const description = CALENDAR_STATUS_LEGEND_DETAILS[status] || "";
     return `
       <div class="calendar-status-legend-item">
         ${renderStatusIcon(status)}
@@ -494,11 +515,7 @@ export function renderCalendar() {
   }).join("");
 
   els.calendarView.innerHTML = `
-    <div class="print-calendar-header">
-      <p class="eyebrow">Calendar PDF</p>
-      <h2>${escapeHtml(state.trip.title)}</h2>
-      <p>${escapeHtml(formatDateShort(state.trip.startDate))} - ${escapeHtml(formatDateShort(state.trip.endDate))}</p>
-    </div>
+    ${renderPrintCalendarHeader()}
     <div class="calendar-board" style="--print-week-height: ${printWeekHeight};">
       <div class="weekday-row">
         ${["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => `<div class="weekday">${day}</div>`).join("")}

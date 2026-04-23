@@ -1,4 +1,4 @@
-const CACHE = "trip-planner-v9";
+const CACHE = "trip-planner-v11";
 const ASSETS = [
   "./",
   "./index.html",
