@@ -283,6 +283,19 @@ textarea {
   width: 100%;
 }
 
+input[type="date"],
+input[type="text"],
+input[type="search"],
+input[type="number"],
+input[type="url"],
+input[type="time"],
+select,
+textarea {
+  box-sizing: border-box;
+  min-width: 0;
+  width: 100%;
+}
+
 select[multiple] {
   min-height: 116px;
 }
@@ -1717,6 +1730,20 @@ button:focus-visible {
 
   .side-panel {
     position: static;
+  }
+}
+
+@media (max-width: 768px) {
+  .view-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    white-space: nowrap;
+  }
+
+  .view-tabs .tab-button {
+    flex: 0 0 auto;
   }
 }
 

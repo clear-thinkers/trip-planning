@@ -8,6 +8,11 @@ import { els, getSelectedPeople, populatePeopleSelect, setSelectedPeople, update
 import { bindPackingActions, getPackingFilterTagOptions, renderPackingControls } from "./render-packing.js";
 
 const render = requestRender;
+const MOBILE_BREAKPOINT = 768;
+
+export function isMobileViewport() {
+  return window.innerWidth <= MOBILE_BREAKPOINT;
+}
 const STATUS_LEGEND_DETAILS = {
   Idea: "想法，表示这是初步构想，还没有完全定下来。",
   Planned: "已规划，表示已经排进计划，时间或安排大致确定。",
@@ -688,7 +693,9 @@ export function renderSidePanel() {
   const city = getPrimaryCity(date);
   const allWarnings = getWarnings();
   const warnings = allWarnings.filter((warning) => warning.date === date);
-  els.sidePanel.innerHTML = `
+  const selectedDayPanel = isMobileViewport()
+    ? ""
+    : `
     <article class="selected-day-panel">
       <p class="eyebrow">Selected day</p>
       <h2>${escapeHtml(formatDateLong(date))}</h2>
@@ -721,6 +728,9 @@ export function renderSidePanel() {
         }
       </div>
     </article>
+  `;
+  els.sidePanel.innerHTML = `
+    ${selectedDayPanel}
     <details class="warnings-panel" ${state.warningsExpanded ? "open" : ""}>
       <summary>
         <span>
