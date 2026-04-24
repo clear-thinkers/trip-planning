@@ -292,8 +292,14 @@ input[type="time"],
 select,
 textarea {
   box-sizing: border-box;
+  max-width: 100%;
   min-width: 0;
   width: 100%;
+}
+
+input[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 select[multiple] {
@@ -520,6 +526,10 @@ button:focus-visible {
 .calendar-status-legend h3 {
   font-size: 0.92rem;
   margin: 0 0 10px;
+}
+
+.calendar-status-legend h3::after {
+  content: " / Status Legend";
 }
 
 .calendar-status-legend-list {
@@ -1146,6 +1156,33 @@ button:focus-visible {
 .todo-drag-handle:focus-visible {
   border-color: var(--primary);
   color: var(--primary);
+}
+
+.pack-drag-handle {
+  align-self: center;
+  flex: 0 0 auto;
+  width: 40px;
+}
+
+.pack-drag-glyph {
+  display: block;
+  height: 12px;
+  position: relative;
+  width: 12px;
+}
+
+.pack-drag-glyph::before {
+  background: currentColor;
+  border-radius: 999px;
+  box-shadow:
+    0 4px 0 currentColor,
+    0 8px 0 currentColor;
+  content: "";
+  height: 2px;
+  left: 0;
+  position: absolute;
+  top: 1px;
+  width: 12px;
 }
 
 .todo-item:active .todo-drag-handle,
@@ -1877,6 +1914,19 @@ button:focus-visible {
   min-width: 0;
 }
 
+.pack-control-row {
+  align-items: center;
+}
+
+.pack-control-fields {
+  min-width: 0;
+}
+
+.pack-subcategory-row {
+  align-items: center;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+}
+
 .type-color-label strong,
 .type-color-label span {
   display: block;
@@ -2020,6 +2070,32 @@ button:focus-visible {
     grid-template-columns: 1fr;
   }
 
+  .trip-settings,
+  .filters,
+  .form-grid,
+  .copy-panel,
+  .type-color-row {
+    grid-template-columns: 1fr;
+  }
+
+  .pack-control-row {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .pack-control-row .type-color-controls {
+    grid-column: 1 / -1;
+  }
+
+  .pack-subcategory-row {
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+  }
+
+  .span-two,
+  .search-field,
+  .compact-field {
+    grid-column: span 1;
+  }
+
   .todo-form,
   .subtodo-form {
     grid-template-columns: minmax(0, 1fr);
@@ -2037,6 +2113,11 @@ button:focus-visible {
   .todo-cost-row input,
   .todo-cost-row select {
     width: 100%;
+  }
+
+  .dialog-actions {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .cost-summary-grid,

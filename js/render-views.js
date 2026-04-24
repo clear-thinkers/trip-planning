@@ -31,6 +31,67 @@ const STATUS_LEGEND_DETAILS = {
   Skipped: "已跳过，表示原本考虑过，但这次不会执行。",
 };
 
+const CALENDAR_STATUS_BILINGUAL_DETAILS = {
+  Idea: {
+    zhLabel: "\u60f3\u6cd5",
+    enLabel: "Idea",
+    zhDescription: "\u521d\u6b65\u6784\u60f3\uff0c\u4ecd\u53ef\u5f39\u6027\u8c03\u6574\u3002",
+    enDescription: "Early concept that is still flexible and not locked in yet.",
+  },
+  Planned: {
+    zhLabel: "\u5df2\u89c4\u5212",
+    enLabel: "Planned",
+    zhDescription: "\u5df2\u7eb3\u5165\u884c\u7a0b\uff0c\u65f6\u95f4\u6216\u5b89\u6392\u5927\u81f4\u786e\u5b9a\u3002",
+    enDescription: "Added to the itinerary with the timing or plan mostly decided.",
+  },
+  Booked: {
+    zhLabel: "\u5df2\u9884\u8ba2",
+    enLabel: "Booked",
+    zhDescription: "\u8fd9\u4e2a\u9879\u76ee\u5df2\u5b8c\u6210\u9884\u8ba2\u6216\u8d2d\u4e70\u3002",
+    enDescription: "Reservation or purchase has been made for this item.",
+  },
+  Confirmed: {
+    zhLabel: "\u5df2\u786e\u8ba4",
+    enLabel: "Confirmed",
+    zhDescription: "\u7ec6\u8282\u5df2\u91cd\u65b0\u6838\u5bf9\uff0c\u53ef\u4ee5\u6309\u8ba1\u5212\u6267\u884c\u3002",
+    enDescription: "Details have been rechecked and the item is ready to happen.",
+  },
+  Done: {
+    zhLabel: "\u5df2\u5b8c\u6210",
+    enLabel: "Done",
+    zhDescription: "\u8fd9\u4e2a\u884c\u7a0b\u9879\u76ee\u5df2\u7ecf\u53d1\u751f\u6216\u5b8c\u6210\u3002",
+    enDescription: "This itinerary item has already happened.",
+  },
+  Skipped: {
+    zhLabel: "\u5df2\u8df3\u8fc7",
+    enLabel: "Skipped",
+    zhDescription: "\u66fe\u88ab\u8003\u8651\u8fdb\u884c\uff0c\u4f46\u8fd9\u6b21\u4e0d\u4f1a\u6267\u884c\u3002",
+    enDescription: "Considered for the trip, but intentionally not happening now.",
+  },
+};
+
+function renderCalendarStatusLegendItem(status) {
+  const entry = CALENDAR_STATUS_BILINGUAL_DETAILS[status] || {
+    zhLabel: status,
+    enLabel: status,
+    zhDescription: "",
+    enDescription: "",
+  };
+  const title = `${entry.zhLabel} / ${entry.enLabel}`;
+  const enDescription = entry.enDescription || CALENDAR_STATUS_LEGEND_DETAILS[status] || "";
+  const description = [entry.zhDescription, enDescription].filter(Boolean).join(" / ");
+
+  return `
+    <div class="calendar-status-legend-item">
+      ${renderStatusIcon(status)}
+      <div class="calendar-status-legend-copy">
+        <strong>${escapeHtml(title)}</strong>
+        <span>${escapeHtml(description)}</span>
+      </div>
+    </div>
+  `;
+}
+
 export function renderScreens() {
   const inWorkspace = state.screen === "workspace";
   els.tripsPage.hidden = inWorkspace;
@@ -438,22 +499,11 @@ export function renderPrintCalendarHeader() {
 }
 
 export function renderCalendarStatusLegend() {
-  const statusLegend = STATUSES.map((status) => {
-    const description = CALENDAR_STATUS_LEGEND_DETAILS[status] || "";
-    return `
-      <div class="calendar-status-legend-item">
-        ${renderStatusIcon(status)}
-        <div class="calendar-status-legend-copy">
-          <strong>${escapeHtml(status)}</strong>
-          <span>${escapeHtml(description)}</span>
-        </div>
-      </div>
-    `;
-  }).join("");
+  const statusLegend = STATUSES.map((status) => renderCalendarStatusLegendItem(status)).join("");
 
   return `
-    <section class="calendar-status-legend" aria-label="Status legend">
-      <h3>Status legend</h3>
+    <section class="calendar-status-legend" aria-label="\u72b6\u6001\u56fe\u4f8b / Status legend">
+      <h3>\u72b6\u6001\u56fe\u4f8b</h3>
       <div class="calendar-status-legend-list">${statusLegend}</div>
     </section>
   `;
@@ -501,18 +551,7 @@ export function renderCalendar() {
       </div>
     `;
   });
-  const statusLegend = STATUSES.map((status) => {
-    const description = CALENDAR_STATUS_LEGEND_DETAILS[status] || "";
-    return `
-      <div class="calendar-status-legend-item">
-        ${renderStatusIcon(status)}
-        <div class="calendar-status-legend-copy">
-          <strong>${escapeHtml(status)}</strong>
-          <span>${escapeHtml(description)}</span>
-        </div>
-      </div>
-    `;
-  }).join("");
+  const statusLegend = STATUSES.map((status) => renderCalendarStatusLegendItem(status)).join("");
 
   els.calendarView.innerHTML = `
     ${renderPrintCalendarHeader()}
@@ -522,7 +561,7 @@ export function renderCalendar() {
       </div>
       <div class="calendar-grid">${days.join("")}</div>
     </div>
-    <section class="calendar-status-legend" aria-label="Status legend">
+    <section class="calendar-status-legend" aria-label="\u72b6\u6001\u56fe\u4f8b / Status legend">
       <h3>状态图例</h3>
       <div class="calendar-status-legend-list">${statusLegend}</div>
     </section>

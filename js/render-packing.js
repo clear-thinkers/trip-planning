@@ -16,6 +16,14 @@ import { els } from "./init.js";
 
 const render = requestRender;
 
+function renderPackDragHandle() {
+  return `
+    <span class="todo-drag-handle pack-drag-handle" aria-hidden="true">
+      <span class="pack-drag-glyph"></span>
+    </span>
+  `;
+}
+
 function getOrderedBags() {
   return (state.trip?.bags || [])
     .slice()
@@ -401,9 +409,9 @@ export function renderPackingControls() {
     ? bags
         .map(
           (bag) => `
-            <div class="type-color-row" draggable="true" data-bag-row="${bag.id}" style="grid-template-columns: minmax(0, 1fr) auto;">
-              <div class="type-color-label" style="align-items: stretch; flex-wrap: wrap;">
-                <span class="todo-drag-handle" style="align-self: center;">Drag</span>
+            <div class="type-color-row pack-control-row" draggable="true" data-bag-row="${bag.id}" style="grid-template-columns: auto minmax(0, 1fr) auto;">
+              ${renderPackDragHandle()}
+              <div class="type-color-label pack-control-fields" style="align-items: stretch; flex-wrap: wrap;">
                 <input data-bag-field="label" data-id="${bag.id}" type="text" value="${escapeHtml(bag.label)}" aria-label="Bag label" style="max-width: 220px;" />
                 <select data-bag-field="size" data-id="${bag.id}" aria-label="Bag size" style="max-width: 180px;">
                   ${BAG_SIZES.map((entry) => `<option value="${entry.value}" ${entry.value === bag.size ? "selected" : ""}>${escapeHtml(entry.label)}</option>`).join("")}
@@ -432,9 +440,9 @@ export function renderPackingControls() {
                 </div>
                 <span class="badge">${assignedCount} item${assignedCount === 1 ? "" : "s"}</span>
               </summary>
-              <div class="type-color-row" draggable="true" data-pack-category-row="${category.id}" style="grid-template-columns: minmax(0, 1fr) auto;">
-                <div class="type-color-label" style="align-items: stretch; flex-wrap: wrap;">
-                  <span class="todo-drag-handle" style="align-self: center;">Drag</span>
+              <div class="type-color-row pack-control-row" draggable="true" data-pack-category-row="${category.id}" style="grid-template-columns: auto minmax(0, 1fr) auto;">
+                ${renderPackDragHandle()}
+                <div class="type-color-label pack-control-fields" style="align-items: stretch; flex-wrap: wrap;">
                   <input data-pack-category-field="icon" data-id="${category.id}" type="text" value="${escapeHtml(category.icon)}" aria-label="Category icon" style="max-width: 76px;" />
                   <input data-pack-category-field="label" data-id="${category.id}" type="text" value="${escapeHtml(category.label)}" aria-label="Category label" style="max-width: 260px;" />
                 </div>
@@ -450,8 +458,8 @@ export function renderPackingControls() {
                         .sort((a, b) => a.order - b.order || a.label.localeCompare(b.label))
                         .map(
                           (subcategory) => `
-                            <div class="subtodo-item" draggable="true" data-pack-subcategory-row="${subcategory.id}" data-pack-category-id="${category.id}">
-                              <span class="todo-drag-handle">Drag</span>
+                            <div class="subtodo-item pack-subcategory-row" draggable="true" data-pack-subcategory-row="${subcategory.id}" data-pack-category-id="${category.id}">
+                              ${renderPackDragHandle()}
                               <input
                                 data-pack-subcategory-field="label"
                                 data-id="${subcategory.id}"
