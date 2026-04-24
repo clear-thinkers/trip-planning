@@ -1,6 +1,6 @@
 import { CURRENCIES, DEFAULT_PEOPLE, ITEM_TYPES, STATUSES, TIMEZONES } from "./constants.js";
 import { debounce } from "./format.js";
-import { requestRender, state } from "./state.js";
+import { getActiveTrip, requestRender, state } from "./state.js";
 import { createNewTrip, deleteCurrentItem, exportTrip, getSelectedFilterValues, importTrip, openItemDialog, printCalendar, saveItemFromForm, setSelectedFilterValues, closeItemDialog, copyCurrentItemToDate, updateTripSettings } from "./render-views.js";
 import { closePackItemDialog, deleteCurrentPackItem, savePackItemFromForm, syncPackItemSubcategoryOptions } from "./render-packing.js";
 
@@ -133,11 +133,9 @@ export function populateTimezoneSelect(select) {
 
 export function populatePeopleSelect(extraPeople = []) {
   const selectedPeople = new Set(getSelectedPeople());
-  const people = [
-    ...DEFAULT_PEOPLE,
-    ...state.store.trips.flatMap((trip) => trip.items.flatMap((item) => item.people || [])),
-    ...extraPeople,
-  ];
+  const trip = getActiveTrip();
+  const basePeople = trip?.people?.length ? trip.people : DEFAULT_PEOPLE;
+  const people = [...basePeople, ...extraPeople];
   const uniquePeople = [...new Set(people.map((person) => String(person).trim()).filter(Boolean))];
   els.itemPeople.innerHTML = "";
   uniquePeople.forEach((person) => {

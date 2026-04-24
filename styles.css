@@ -297,7 +297,8 @@ textarea {
   width: 100%;
 }
 
-input[type="date"] {
+input[type="date"],
+input[type="time"] {
   -webkit-appearance: none;
   appearance: none;
 }
@@ -1966,6 +1967,15 @@ button:focus-visible {
 
 .color-code-input:invalid {
   border-color: var(--error);
+}
+
+.people-list-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.people-list-row {
+  grid-template-columns: 1fr auto;
 }
 
 .pack-progress-bar {

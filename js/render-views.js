@@ -786,6 +786,53 @@ export function updateCostSettingsFromControls() {
   render();
 }
 
+function renderPeopleControls() {
+  const people = state.trip.people || [];
+  const rows = people.length
+    ? people
+        .map(
+          (name) => `
+            <div class="type-color-row people-list-row">
+              <span>${escapeHtml(name)}</span>
+              <button class="danger-button compact-button" data-person-delete="${escapeHtml(name)}" type="button">Remove</button>
+            </div>
+          `,
+        )
+        .join("")
+    : `<div class="empty-state compact">No people added yet.</div>`;
+  return `
+    <section class="section-block">
+      <div class="section-header">
+        <div>
+          <p class="eyebrow">Controls</p>
+          <h2>People</h2>
+        </div>
+      </div>
+      <p class="muted">Manage the people list used when tagging itinerary items.</p>
+      <div class="people-list-grid">${rows}</div>
+      <form class="todo-form" id="addPersonForm" style="margin-top: 12px;">
+        <input name="name" type="text" placeholder="Add a person" aria-label="New person name" />
+        <button class="secondary-button" type="submit">Add</button>
+      </form>
+    </section>
+  `;
+}
+
+function addTripPerson(name) {
+  const trimmed = String(name).trim();
+  if (!trimmed) return;
+  if (state.trip.people.some((p) => p.toLowerCase() === trimmed.toLowerCase())) return;
+  state.trip.people = [...state.trip.people, trimmed];
+  saveStore();
+  render();
+}
+
+function deleteTripPerson(name) {
+  state.trip.people = state.trip.people.filter((p) => p !== name);
+  saveStore();
+  render();
+}
+
 export function renderControls() {
   const rows = ITEM_TYPES.map((type) => {
     const color = getItemTypeColor(type);
@@ -821,6 +868,7 @@ export function renderControls() {
       <p class="muted">Pick the stripe color used for each item type on the calendar, day detail, and selected day panels.</p>
       <div class="type-color-grid">${rows}</div>
     </section>
+    ${renderPeopleControls()}
     ${renderPackingControls()}
   `;
 
@@ -836,6 +884,16 @@ export function renderControls() {
     button.addEventListener("click", () => updateItemTypeColor(button.dataset.resetColor, getDefaultItemTypeColor(button.dataset.resetColor)));
   });
   els.controlsView.querySelector("#resetAllColorsButton").addEventListener("click", resetItemTypeColors);
+  els.controlsView.querySelectorAll("[data-person-delete]").forEach((button) => {
+    button.addEventListener("click", () => deleteTripPerson(button.dataset.personDelete));
+  });
+  const addPersonForm = els.controlsView.querySelector("#addPersonForm");
+  if (addPersonForm) {
+    addPersonForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      addTripPerson(addPersonForm.elements.name.value);
+    });
+  }
   bindPackingActions(els.controlsView);
 }
 
@@ -1006,14 +1064,14 @@ export function renderPlanningDuePanel(dueEntries) {
   const mobile = isMobileViewport();
   if (mobile) {
     return `
-      <section class="section-block planning-calendar-panel planning-due-panel" id="todos-due-section" aria-label="Todo due dates">
-        <div class="section-header planning-due-static-header">
-          <div>
+      <details class="section-block planning-calendar-panel planning-due-panel" id="todos-due-section" open>
+        <summary>
+          <span>
             <p class="eyebrow">Planning calendar</p>
-            <h3>Due dates</h3>
-          </div>
+            <strong>Due dates</strong>
+          </span>
           <span class="badge">${dueEntries.length} item${dueEntries.length === 1 ? "" : "s"} with due dates</span>
-        </div>
+        </summary>
         <div class="planning-due-content">
           ${
             dueEntries.length
@@ -1021,7 +1079,7 @@ export function renderPlanningDuePanel(dueEntries) {
               : `<div class="empty-state compact">No due dates to show for the current filters.</div>`
           }
         </div>
-      </section>
+      </details>
     `;
   }
 

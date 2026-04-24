@@ -139,6 +139,7 @@ Fields:
 - `endDate`
 - `homeTimezone`
 - `notes`
+- `people`
 - `itemTypeColors`
 - `costSettings`
 - `items`
@@ -387,6 +388,7 @@ Purpose:
 Current behavior:
 
 - due-date calendar above the checklist
+- on mobile the due-date calendar section is collapsible (starts expanded, tap the header to collapse)
 - add parent todos with optional cost and due date
 - add nested subtodos
 - drag-to-reorder parent and child items
@@ -433,6 +435,7 @@ Current behavior:
 
 - item type color controls with color picker and hex input
 - reset per type or reset all
+- people list management: add and remove named people used when tagging itinerary items
 - bag controls for label, size, weight limit, and color
 - editable packing category and sub-category tree
 
