@@ -160,6 +160,7 @@ export const DEFAULT_PACK_TAGS = ["Mom", "Dad", "Freddie", "Nora", "Shared"];
 export const TIMEZONES = [
   { value: "US_EST", label: "US EST", shortLabel: "ET" },
   { value: "US_CDT", label: "US CDT", shortLabel: "CT" },
+  { value: "US_PT", label: "美国太平洋时间", shortLabel: "PT" },
   { value: "BEIJING", label: "北京时间", shortLabel: "北京" },
 ];
 

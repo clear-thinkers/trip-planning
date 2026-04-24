@@ -12,6 +12,9 @@ export function normalizeTimezone(value) {
   if (["us cdt", "cdt", "cst", "us central", "central", "america/chicago"].includes(normalized)) {
     return "US_CDT";
   }
+  if (["us pt", "pst", "pdt", "us pacific", "pacific", "america/los_angeles", "california"].includes(normalized)) {
+    return "US_PT";
+  }
   if (TIMEZONES.some((timezone) => timezone.value === value)) return value;
   return DEFAULT_TIMEZONE;
 }
