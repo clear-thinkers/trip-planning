@@ -145,13 +145,14 @@ export function renderTripsList() {
   });
 }
 
-export function openTrip(id) {
+export function openTrip(id, { expand = false } = {}) {
   state.store.activeTripId = id;
   state.trip = getActiveTrip();
   state.selectedDate = state.trip.startDate;
   state.view = "calendar";
   state.packingSubView = "list";
   state.screen = "workspace";
+  state.tripSettingsCollapsed = !expand;
   state.filters = { type: ["all"], status: ["all"], search: "" };
   state.todoFilters = { status: ["all"], dueDate: ["all"], search: "" };
   state.packingFilters = { status: ["all"], tags: ["all"], search: "" };
@@ -171,7 +172,7 @@ export function createNewTrip() {
     items: [],
   });
   state.store.trips.push(trip);
-  openTrip(trip.id);
+  openTrip(trip.id, { expand: true });
 }
 
 export function resetTrip(id) {
@@ -225,6 +226,11 @@ export function renderTripSettings() {
   els.tripStart.value = state.trip.startDate;
   els.tripEnd.value = state.trip.endDate;
   els.tripTimezone.value = normalizeTimezone(state.trip.homeTimezone);
+  const { title, startDate, endDate } = state.trip;
+  const dateRange = startDate && endDate ? `${formatDateShort(startDate)} – ${formatDateShort(endDate)}` : "";
+  els.tripSettingsSummaryText.textContent = [title, dateRange].filter(Boolean).join(" · ");
+  els.tripSettings.classList.toggle("collapsed", state.tripSettingsCollapsed);
+  els.tripSettingsToggle.setAttribute("aria-expanded", String(!state.tripSettingsCollapsed));
   state.filters.type = normalizeFilterValues(state.filters.type);
   state.filters.status = normalizeFilterValues(state.filters.status);
   state.todoFilters.status = normalizeFilterValues(state.todoFilters.status);
@@ -1060,13 +1066,19 @@ export function renderPlanningTodos() {
   `;
   bindTodoActions(els.planningView);
   if (!isMobileViewport()) bindPlanningDueCalendar(els.planningView);
+  const planningDetailsEl = els.planningView.querySelector("#todos-due-section");
+  if (planningDetailsEl) {
+    planningDetailsEl.addEventListener("toggle", () => {
+      state.planningCalendarOpen = planningDetailsEl.open;
+    });
+  }
 }
 
 export function renderPlanningDuePanel(dueEntries) {
   const mobile = isMobileViewport();
   if (mobile) {
     return `
-      <details class="section-block planning-calendar-panel planning-due-panel" id="todos-due-section" open>
+      <details class="section-block planning-calendar-panel planning-due-panel" id="todos-due-section" ${state.planningCalendarOpen ? "open" : ""}>
         <summary>
           <span>
             <p class="eyebrow">Planning calendar</p>
@@ -1131,7 +1143,7 @@ export function getPlanningDueEntries(filteredTodos) {
   return filteredTodos
     .flatMap(({ todo, subtodos }) => {
       const entries = [];
-      if (todo.dueDate) {
+      if (todo.dueDate && !todo.done) {
         entries.push({
           id: todo.id,
           parentId: "",
@@ -1143,7 +1155,7 @@ export function getPlanningDueEntries(filteredTodos) {
         });
       }
       subtodos.forEach((subtodo) => {
-        if (!subtodo.dueDate) return;
+        if (!subtodo.dueDate || subtodo.done) return;
         entries.push({
           id: subtodo.id,
           parentId: todo.id,
@@ -1413,7 +1425,7 @@ export function renderTodoItem(todo, subtodos = getSubtodos(todo)) {
                   <button class="todo-text-button" data-todo-action="edit" data-id="${todo.id}" type="button">${escapeHtml(todo.text)}</button>
                 </label>
                 ${renderTodoBadges({
-                  dueDate: todo.dueDate,
+                  dueDate: todo.done ? "" : todo.dueDate,
                   cost: todo.cost,
                   currency: todo.currency,
                   subtodoCount: subtodos.length,
@@ -1421,7 +1433,7 @@ export function renderTodoItem(todo, subtodos = getSubtodos(todo)) {
                 })}
               </div>
               ${renderTodoBadges({
-                dueDate: todo.dueDate,
+                dueDate: todo.done ? "" : todo.dueDate,
                 cost: todo.cost,
                 currency: todo.currency,
                 subtodoCount: subtodos.length,
@@ -1470,7 +1482,7 @@ export function renderSubtodoItem(parentId, subtodo) {
                 <button class="todo-text-button" data-subtodo-action="edit" data-parent-id="${parentId}" data-id="${subtodo.id}" type="button">${escapeHtml(subtodo.text)}</button>
               </label>
               ${renderTodoBadges({
-                dueDate: subtodo.dueDate,
+                dueDate: subtodo.done ? "" : subtodo.dueDate,
                 cost: subtodo.cost,
                 currency: subtodo.currency,
                 hideSubtodoCount: true,
@@ -1478,7 +1490,7 @@ export function renderSubtodoItem(parentId, subtodo) {
               })}
             </div>
             ${renderTodoBadges({
-              dueDate: subtodo.dueDate,
+              dueDate: subtodo.done ? "" : subtodo.dueDate,
               cost: subtodo.cost,
               currency: subtodo.currency,
               hideSubtodoCount: true,

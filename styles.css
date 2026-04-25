@@ -188,6 +188,7 @@ h3 {
 .file-button {
   align-items: center;
   display: inline-flex;
+  font-size: inherit;
 }
 
 .trip-settings,
@@ -251,11 +252,22 @@ h3 {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
+  margin-bottom: 16px;
+  padding: 16px;
+}
+
+.trip-settings-fields {
   display: grid;
   gap: 14px;
   grid-template-columns: minmax(220px, 1.4fr) repeat(3, minmax(150px, 1fr));
-  margin-bottom: 16px;
-  padding: 16px;
+}
+
+.trip-settings-toggle {
+  display: none;
+}
+
+.trip-settings-chevron {
+  transition: transform 0.15s;
 }
 
 .field {
@@ -1759,8 +1771,13 @@ button:focus-visible {
 
 .cost-summary-grid,
 .cost-summary-cards {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   margin-bottom: 14px;
+}
+
+.cost-summary-total {
+  grid-column: 1 / -1;
+  border-color: var(--border);
 }
 
 .cost-breakdown-grid,
@@ -1780,12 +1797,6 @@ button:focus-visible {
   display: grid;
   gap: 6px;
   padding: 12px;
-}
-
-.cost-summary-total {
-  background: #e6f5f4;
-  border-color: rgba(47, 111, 115, 0.45);
-  box-shadow: inset 0 0 0 1px rgba(47, 111, 115, 0.16);
 }
 
 .cost-summary-travel {
@@ -1811,7 +1822,7 @@ button:focus-visible {
 }
 
 .cost-summary-total strong {
-  color: var(--primary);
+  color: #111111;
   font-size: 1.28rem;
 }
 
@@ -2015,6 +2026,15 @@ button:focus-visible {
   text-decoration: none;
 }
 
+.bag-column.drag-over {
+  background: #eef8f7;
+  box-shadow: inset 0 0 0 2px var(--primary);
+}
+
+.bag-column .pack-chip.dragging {
+  opacity: 0.4;
+}
+
 @media (max-width: 980px) {
   .app-shell {
     padding: 16px;
@@ -2034,7 +2054,7 @@ button:focus-visible {
     justify-content: flex-start;
   }
 
-  .trip-settings,
+  .trip-settings-fields,
   .filters {
     grid-template-columns: 1fr 1fr;
   }
@@ -2080,12 +2100,53 @@ button:focus-visible {
     grid-template-columns: 1fr;
   }
 
-  .trip-settings,
+  .trip-settings-fields,
   .filters,
   .form-grid,
   .copy-panel,
   .type-color-row {
     grid-template-columns: 1fr;
+  }
+
+  .trip-settings-toggle {
+    align-items: center;
+    background: none;
+    border: none;
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+    padding: 0;
+    text-align: left;
+    width: 100%;
+  }
+
+  .trip-settings-summary-text {
+    flex: 1;
+    font-size: 0.9rem;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .trip-settings-chevron {
+    color: var(--muted);
+    flex-shrink: 0;
+    font-size: 1.1rem;
+  }
+
+  .trip-settings:not(.collapsed) .trip-settings-chevron {
+    transform: rotate(180deg);
+  }
+
+  .trip-settings.collapsed .trip-settings-fields {
+    display: none;
+  }
+
+  .trip-settings.collapsed .trip-settings-toggle {
+    margin-bottom: 0;
   }
 
   .pack-control-row {
@@ -2162,7 +2223,7 @@ button:focus-visible {
 
   .calendar-grid,
   .due-calendar-grid,
-  .trip-settings,
+  .trip-settings-fields,
   .filters,
   .form-grid {
     grid-template-columns: 1fr;
@@ -2238,7 +2299,7 @@ button:focus-visible {
   }
 
   .topbar,
-  .trip-settings,
+  .trip-settings-toggle,
   .view-tabs,
   .filters,
   .alerts,

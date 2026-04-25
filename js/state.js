@@ -33,6 +33,8 @@ export const state = {
   packingSubView: "list",
   selectedDate: null,
   warningsExpanded: false,
+  tripSettingsCollapsed: false,
+  planningCalendarOpen: true,
   expandedTodoIds: [],
   editingTodoId: null,
   editingSubtodo: null,

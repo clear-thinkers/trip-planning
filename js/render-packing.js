@@ -16,6 +16,8 @@ import { els } from "./init.js";
 
 const render = requestRender;
 
+let bagTouchDragState = null;
+
 function renderPackDragHandle() {
   return `
     <span class="todo-drag-handle pack-drag-handle" aria-hidden="true">
@@ -656,7 +658,10 @@ export function renderPacking() {
     </section>
   `;
   bindPackingActions(els.packingView);
-  if (state.packingSubView === "planner") bindBagPlannerDragAndDrop();
+  if (state.packingSubView === "planner") {
+    bindBagPlannerDragAndDrop();
+    bindBagPlannerTouchDrag();
+  }
 }
 
 export function openPackItemDialog(id = null, defaults = {}) {
@@ -844,6 +849,57 @@ export function deletePackCategory(id) {
   );
   state.trip.updatedAt = new Date().toISOString();
   render();
+}
+
+export function bindBagPlannerTouchDrag() {
+  els.packingView?.querySelectorAll("[data-pack-chip-id]").forEach((chip) => {
+    chip.addEventListener("touchstart", (event) => {
+      const touch = event.touches[0];
+      if (!touch) return;
+      bagTouchDragState = {
+        chipId: chip.dataset.packChipId,
+        chipEl: chip,
+        startX: touch.clientX,
+        startY: touch.clientY,
+        isDragging: false,
+        targetColumn: null,
+      };
+    }, { passive: true });
+
+    chip.addEventListener("touchmove", (event) => {
+      if (!bagTouchDragState) return;
+      const touch = event.touches[0];
+      if (!touch) return;
+      const dx = touch.clientX - bagTouchDragState.startX;
+      const dy = touch.clientY - bagTouchDragState.startY;
+      if (!bagTouchDragState.isDragging && Math.sqrt(dx * dx + dy * dy) < 8) return;
+      event.preventDefault();
+      if (!bagTouchDragState.isDragging) {
+        bagTouchDragState.isDragging = true;
+        chip.classList.add("dragging");
+      }
+      const elements = document.elementsFromPoint(touch.clientX, touch.clientY);
+      const column = elements.find((el) => el.hasAttribute("data-bag-drop-zone")) || null;
+      els.packingView?.querySelectorAll("[data-bag-drop-zone]").forEach((col) => {
+        col.classList.toggle("drag-over", col === column);
+      });
+      bagTouchDragState.targetColumn = column;
+    }, { passive: false });
+
+    const endDrag = () => {
+      if (!bagTouchDragState) return;
+      const { chipId, chipEl, isDragging, targetColumn } = bagTouchDragState;
+      chipEl.classList.remove("dragging");
+      els.packingView?.querySelectorAll("[data-bag-drop-zone]").forEach((col) => col.classList.remove("drag-over"));
+      if (isDragging && targetColumn) {
+        movePackItemToBag(chipId, targetColumn.dataset.bagDropZone || "");
+      }
+      bagTouchDragState = null;
+    };
+
+    chip.addEventListener("touchend", endDrag);
+    chip.addEventListener("touchcancel", endDrag);
+  });
 }
 
 export function bindBagPlannerDragAndDrop() {

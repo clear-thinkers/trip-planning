@@ -68,7 +68,16 @@ if ("serviceWorker" in navigator) {
   navigator.serviceWorker
     .register("./sw.js", { scope: "./" })
     .then((reg) => {
-      console.log("[SW] Registered, scope:", reg.scope);
+      reg.addEventListener("updatefound", () => {
+        const newWorker = reg.installing;
+        if (!newWorker) return;
+        newWorker.addEventListener("statechange", () => {
+          if (newWorker.state === "activated") {
+            const banner = document.getElementById("updateBanner");
+            if (banner) banner.style.display = "block";
+          }
+        });
+      });
     })
     .catch((err) => {
       console.error("[SW] Registration failed:", err);

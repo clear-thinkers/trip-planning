@@ -100,6 +100,8 @@ export function cacheElements() {
     "packItemCost",
     "packItemCurrency",
     "packItemNotes",
+    "tripSettingsToggle",
+    "tripSettingsSummaryText",
   ].forEach((id) => {
     els[id] = document.getElementById(id);
   });
@@ -200,6 +202,11 @@ export function bindEvents() {
   els.tripStart.addEventListener("change", updateTripSettings);
   els.tripEnd.addEventListener("change", updateTripSettings);
   els.tripTimezone.addEventListener("change", updateTripSettings);
+  els.tripSettingsToggle.addEventListener("click", () => {
+    state.tripSettingsCollapsed = !state.tripSettingsCollapsed;
+    els.tripSettings.classList.toggle("collapsed", state.tripSettingsCollapsed);
+    els.tripSettingsToggle.setAttribute("aria-expanded", String(!state.tripSettingsCollapsed));
+  });
   els.itemType.addEventListener("change", updateItemFormForType);
   els.itemStartTbd.addEventListener("change", updateDateTimeTbdControls);
   els.itemStartTimeTbd.addEventListener("change", updateDateTimeTbdControls);

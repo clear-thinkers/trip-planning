@@ -53,27 +53,36 @@
               <p class="eyebrow">Saved trips</p>
               <h2>Choose a trip to plan</h2>
             </div>
-            <button class="primary-button" id="newTripButton" type="button">New trip</button>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <button class="primary-button" id="newTripButton" type="button">New trip</button>
+              <label class="primary-button file-button" for="importInput">Import JSON</label>
+            </div>
           </div>
           <div class="trip-card-grid" id="tripsList"></div>
         </section>
 
         <section class="trip-settings app-screen" id="tripSettings" aria-label="Trip settings" hidden>
-          <div class="field compact-field">
-            <label for="tripTitle">Trip name</label>
-            <input id="tripTitle" type="text" />
-          </div>
-          <div class="field date-field">
-            <label for="tripStart">Start</label>
-            <input id="tripStart" type="date" />
-          </div>
-          <div class="field date-field">
-            <label for="tripEnd">End</label>
-            <input id="tripEnd" type="date" />
-          </div>
-          <div class="field compact-field">
-            <label for="tripTimezone">Timezone</label>
-            <select id="tripTimezone"></select>
+          <button class="trip-settings-toggle" id="tripSettingsToggle" type="button" aria-expanded="false">
+            <span class="trip-settings-summary-text" id="tripSettingsSummaryText"></span>
+            <span class="trip-settings-chevron" aria-hidden="true">&#9662;</span>
+          </button>
+          <div class="trip-settings-fields">
+            <div class="field compact-field">
+              <label for="tripTitle">Trip name</label>
+              <input id="tripTitle" type="text" />
+            </div>
+            <div class="field date-field">
+              <label for="tripStart">Start</label>
+              <input id="tripStart" type="date" />
+            </div>
+            <div class="field date-field">
+              <label for="tripEnd">End</label>
+              <input id="tripEnd" type="date" />
+            </div>
+            <div class="field compact-field">
+              <label for="tripTimezone">Timezone</label>
+              <select id="tripTimezone"></select>
+            </div>
           </div>
         </section>
 
