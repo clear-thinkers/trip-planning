@@ -1,7 +1,9 @@
 import { bindEvents, cacheElements, els, populateSelects } from "./js/init.js";
-import { getActiveTrip, saveStore, setRenderCallback, state } from "./js/state.js";
-import { renderAlerts, renderCalendar, renderControls, renderCosts, renderDayView, renderList, renderPlanningTodos, renderScreens, renderSidePanel, renderTabs, renderTripSettings, renderTripsList } from "./js/render-views.js";
+import { getActiveTrip, normalizeTrip, saveStore, setRenderCallback, state } from "./js/state.js";
+import { getUniqueTripTitle, renderAlerts, renderCalendar, renderControls, renderCosts, renderDayView, renderList, renderPlanningTodos, renderScreens, renderSidePanel, renderTabs, renderTripSettings, renderTripsList } from "./js/render-views.js";
 import { renderPacking } from "./js/render-packing.js";
+import { loadTripFromUrl } from "./js/share.js";
+import { createId } from "./js/format.js";
 
 const SIDEBAR_VIEWS = new Set(["calendar", "list", "day"]);
 
@@ -40,11 +42,23 @@ export function render() {
 
 setRenderCallback(render);
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("bootWarning")?.setAttribute("hidden", "");
   cacheElements();
   populateSelects();
   bindEvents();
+
+  const sharedTrip = await loadTripFromUrl();
+  if (sharedTrip) {
+    const trip = normalizeTrip(sharedTrip);
+    trip.id = createId();
+    trip.title = getUniqueTripTitle(trip.title);
+    state.store.trips.push(trip);
+    state.store.activeTripId = trip.id;
+    state.screen = "workspace";
+    history.replaceState(null, "", window.location.pathname);
+  }
+
   state.trip = getActiveTrip();
   state.selectedDate = state.trip?.startDate || null;
   render();

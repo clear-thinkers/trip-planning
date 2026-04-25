@@ -1,7 +1,7 @@
 import { CURRENCIES, DEFAULT_PEOPLE, ITEM_TYPES, STATUSES, TIMEZONES } from "./constants.js";
 import { debounce } from "./format.js";
 import { getActiveTrip, requestRender, state } from "./state.js";
-import { createNewTrip, deleteCurrentItem, exportTrip, getSelectedFilterValues, importTrip, openItemDialog, printCalendar, saveItemFromForm, setSelectedFilterValues, closeItemDialog, copyCurrentItemToDate, updateTripSettings } from "./render-views.js";
+import { createNewTrip, deleteCurrentItem, exportTrip, getSelectedFilterValues, importTrip, openItemDialog, printCalendar, saveItemFromForm, setSelectedFilterValues, closeItemDialog, copyCurrentItemToDate, updateTripSettings, shareTrip } from "./render-views.js";
 import { closePackItemDialog, deleteCurrentPackItem, savePackItemFromForm, syncPackItemSubcategoryOptions } from "./render-packing.js";
 
 const render = requestRender;
@@ -24,6 +24,7 @@ export function cacheElements() {
     "exportButton",
     "importButton",
     "importInput",
+    "shareButton",
     "addItemButton",
     "typeFilter",
     "statusFilter",
@@ -278,6 +279,7 @@ export function bindEvents() {
   els.printCalendarButton.addEventListener("click", printCalendar);
   els.exportButton.addEventListener("click", exportTrip);
   els.importInput.addEventListener("change", importTrip);
+  els.shareButton.addEventListener("click", shareTrip);
   els.packItemCategory?.addEventListener("change", () => syncPackItemSubcategoryOptions());
   els.packItemForm?.addEventListener("submit", savePackItemFromForm);
   els.closePackDialogButton?.addEventListener("click", closePackItemDialog);

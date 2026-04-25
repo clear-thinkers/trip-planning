@@ -26,7 +26,8 @@ Current file roles:
 - `app.js`: top-level render loop, screen coordination, and service worker registration
 - `js/init.js`: element caching, select population, event binding
 - `js/state.js`: normalization, defaults, sample data, persistence
-- `js/render-views.js`: trips, itinerary views, planning todos, costs, controls, printing, import/export
+- `js/render-views.js`: trips, itinerary views, planning todos, costs, controls, printing, import/export, URL sharing
+- `js/share.js`: compress trip to base64url hash via `CompressionStream`, generate share URL, load trip from URL hash on startup
 - `js/render-packing.js`: packing list, bag planner, packing dialogs, packing controls
 - `js/data.js`: derived trip data, filters, costs, packing progress
 - `js/warnings.js`: trip and packing warning generation
@@ -111,6 +112,7 @@ Implemented:
 - calendar drag-and-drop for itinerary date changes
 - drag-to-reorder for todos, subtodos, bags, categories, and sub-categories where relevant
 - JSON export/import
+- URL sharing — trip compressed with native `CompressionStream` and encoded as a `#trip=` hash fragment; opening the link imports the trip automatically
 - file-storage recovery helper for old `file:///` usage
 - print-friendly calendar output with status legend
 - typed confirmations for destructive actions
@@ -490,9 +492,10 @@ Current storage model:
 
 - browser `localStorage`
 - JSON export/import for backup and transfer
+- URL sharing via `#trip=<base64url-deflate>` hash fragment — no server required; the full trip is encoded client-side using the native `CompressionStream` API
 - `recover-file-storage.html` for migrating old `file:///` local storage into the served app
 
-Export/import should preserve:
+Export/import and URL sharing preserve:
 
 - itinerary items
 - planning todo hierarchy

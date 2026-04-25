@@ -6,6 +6,7 @@ import { getWarnings, getWarningsForTrip } from "./warnings.js";
 import { getDefaultItemTypeColor, getItemMeta, getItemTypeColor, renderCurrencyOptions, renderItemTypeStyle, renderStatusIcon, renderTimelineRow } from "./render-shared.js";
 import { els, getSelectedPeople, populatePeopleSelect, setSelectedPeople, updateDateTimeTbdControls, updateItemFormForType } from "./init.js";
 import { bindPackingActions, getPackingFilterTagOptions, renderPackingControls } from "./render-packing.js";
+import { generateShareUrl } from "./share.js";
 
 const render = requestRender;
 const MOBILE_BREAKPOINT = 768;
@@ -101,6 +102,7 @@ export function renderScreens() {
   els.printCalendarButton.hidden = !inWorkspace;
   els.exportButton.hidden = !inWorkspace;
   els.importButton.hidden = !inWorkspace;
+  els.shareButton.hidden = !inWorkspace;
   els.addItemButton.hidden = !inWorkspace;
 }
 
@@ -2060,6 +2062,21 @@ export function printCalendar() {
   state.view = "calendar";
   render();
   requestAnimationFrame(() => window.print());
+}
+
+export async function shareTrip() {
+  const url = await generateShareUrl(state.trip);
+  const btn = els.shareButton;
+  try {
+    await navigator.clipboard.writeText(url);
+  } catch {
+    window.prompt("Copy this share link:", url);
+    return;
+  }
+  if (!btn) return;
+  const original = btn.textContent;
+  btn.textContent = "Copied!";
+  setTimeout(() => { btn.textContent = original; }, 2000);
 }
 
 export function exportTrip() {

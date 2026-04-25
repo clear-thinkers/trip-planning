@@ -35,7 +35,8 @@ Once installed, the app loads fully offline from the local cache. All trip data 
 - `app.js` boots the app, coordinates top-level rendering, and registers the service worker
 - `js/init.js` caches DOM nodes, populates controls, and binds events
 - `js/state.js` normalizes trip data and owns local persistence
-- `js/render-views.js` renders trips, itinerary views, planning todos, costs, controls, import/export, and print
+- `js/render-views.js` renders trips, itinerary views, planning todos, costs, controls, import/export, sharing, and print
+- `js/share.js` compresses a trip to a base64url hash and reads it back from the URL on load
 - `js/render-packing.js` renders the packing list, bag planner, and packing controls
 - `js/data.js`, `js/warnings.js`, `js/format.js`, `js/constants.js`, and `js/render-shared.js` hold shared logic
 - `sw.js` service worker — pre-caches all app assets, serves the app offline, and notifies the page when a new version activates
@@ -45,7 +46,7 @@ Once installed, the app loads fully offline from the local cache. All trip data 
 
 ## Current Features
 
-- Saved Trips landing page for creating, opening, resetting, deleting, exporting, and importing trips
+- Saved Trips landing page for creating, opening, resetting, deleting, exporting, importing, and sharing trips
 - Typed safety checks for destructive actions:
   - `Reset data` requires typing `RESET`
   - `Delete` requires typing `DELETE`
@@ -92,6 +93,7 @@ Once installed, the app loads fully offline from the local cache. All trip data 
 
 - Trips, itinerary items, planning todos, packing items, bag setup, category setup, color settings, and cost settings are stored locally in browser `localStorage`
 - JSON export/import preserves itinerary data, planning todo structure, packing data, item type colors, and cost settings
+- URL sharing encodes a full trip as a compressed hash fragment; recipients open the link and the trip is imported automatically
 
 ## Notes
 
