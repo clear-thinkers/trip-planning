@@ -2082,29 +2082,32 @@ export async function shareTrip() {
   const trip = state.trip;
   if (!trip) return;
 
-  if (!trip.cloudId) {
-    panel.hidden = false;
-    const statusEl = document.getElementById("shareStatus");
-    const linkRow = document.getElementById("shareLinkRow");
-    const permsDiv = document.getElementById("sharePermissions");
-    if (statusEl) statusEl.textContent = "Saving to cloud…";
-    if (linkRow) linkRow.hidden = true;
-    if (permsDiv) permsDiv.hidden = true;
-    try {
-      const result = await saveToCloud(trip);
-      trip.cloudId = result.id;
-      trip.ownerId = result.ownerId;
-      trip.permission = result.permission;
-      saveStore();
-      history.replaceState(null, "", buildShareUrl(trip.cloudId));
-    } catch (err) {
-      console.error("[trip-planner] shareTrip failed:", err);
-      if (statusEl) statusEl.textContent = "Failed to save. Check your connection and try again.";
-      return;
-    }
+  panel.hidden = false;
+
+  if (trip.cloudId) {
+    renderSharePanel();
+    return;
   }
 
-  renderSharePanel();
+  const statusEl = document.getElementById("shareStatus");
+  const linkRow = document.getElementById("shareLinkRow");
+  const permsDiv = document.getElementById("sharePermissions");
+  if (statusEl) statusEl.textContent = "Saving to cloud…";
+  if (linkRow) linkRow.hidden = true;
+  if (permsDiv) permsDiv.hidden = true;
+
+  try {
+    const result = await saveToCloud(trip);
+    trip.cloudId = result.id;
+    trip.ownerId = result.ownerId;
+    trip.permission = result.permission;
+    saveStore();
+    history.replaceState(null, "", buildShareUrl(trip.cloudId));
+    renderSharePanel();
+  } catch (err) {
+    console.error("[trip-planner] shareTrip failed:", err);
+    if (statusEl) statusEl.textContent = "Failed to save. Check your connection and try again.";
+  }
 }
 
 function renderSharePanel() {

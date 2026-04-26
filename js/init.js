@@ -322,13 +322,16 @@ export function bindEvents() {
     const trip = state.trip;
     if (!trip?.cloudId) return;
     const perm = btn.dataset.perm;
+    const prevPerm = trip.permission;
+    trip.permission = perm;
+    document.querySelectorAll(".perm-btn").forEach((b) => b.classList.toggle("active", b.dataset.perm === perm));
     try {
       await setTripPermission(trip.cloudId, perm);
-      trip.permission = perm;
       saveStore();
-      document.querySelectorAll(".perm-btn").forEach((b) => b.classList.toggle("active", b.dataset.perm === perm));
     } catch (err) {
       console.error("[trip-planner] Permission update failed:", err);
+      trip.permission = prevPerm;
+      document.querySelectorAll(".perm-btn").forEach((b) => b.classList.toggle("active", b.dataset.perm === prevPerm));
     }
   });
 
