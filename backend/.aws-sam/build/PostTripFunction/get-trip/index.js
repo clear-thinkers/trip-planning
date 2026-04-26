@@ -12,8 +12,8 @@ const HEADERS = {
 };
 
 exports.handler = async (event) => {
-  console.log('event:', JSON.stringify(event));
   try {
+    console.log('event:', JSON.stringify(event));
     const identityId = event.requestContext?.identity?.cognitoIdentityId;
     if (!identityId) {
       return { statusCode: 401, headers: HEADERS, body: JSON.stringify({ message: "Unauthorized" }) };
@@ -50,8 +50,9 @@ exports.handler = async (event) => {
         updatedAt: item.updatedAt,
       }),
     };
-  } catch (err) {
-    console.error("Unhandled error in get-trip:", err);
-    return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ message: err.message }) };
+  } catch (error) {
+    console.error('Error:', error);
+    console.error('Error stack:', error.stack);
+    return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ message: error.message }) };
   }
 };
