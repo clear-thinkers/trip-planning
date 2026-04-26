@@ -14,7 +14,21 @@ export async function initAuth() {
     { IdentityPoolId: IDENTITY_POOL_ID, ...(cachedId && { IdentityId: cachedId }) },
     { region: AWS_REGION },
   );
-  await AWS.config.credentials.getPromise();
+  try {
+    await AWS.config.credentials.getPromise();
+  } catch (err) {
+    if (cachedId) {
+      // Cached identity may be stale — retry without it.
+      localStorage.removeItem(IDENTITY_KEY);
+      AWS.config.credentials = new AWS.CognitoIdentityCredentials(
+        { IdentityPoolId: IDENTITY_POOL_ID },
+        { region: AWS_REGION },
+      );
+      await AWS.config.credentials.getPromise();
+    } else {
+      throw err;
+    }
+  }
   const identityId = AWS.config.credentials.identityId;
   localStorage.setItem(IDENTITY_KEY, identityId);
   return identityId;
