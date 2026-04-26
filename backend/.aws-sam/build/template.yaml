@@ -66,10 +66,142 @@ Resources:
     Type: AWS::Serverless::Api
     Properties:
       StageName: prod
-      Cors:
-        AllowMethods: '''GET,POST,PUT,PATCH,OPTIONS'''
-        AllowHeaders: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'''
-        AllowOrigin: '''*'''
+      DefinitionBody:
+        swagger: '2.0'
+        info:
+          title: TripPlannerApi
+          version: '1.0'
+        securityDefinitions:
+          sigv4:
+            type: apiKey
+            name: Authorization
+            in: header
+            x-amazon-apigateway-authtype: awsSigv4
+        paths:
+          /trips:
+            post:
+              security:
+              - sigv4: []
+              x-amazon-apigateway-integration:
+                type: aws_proxy
+                httpMethod: POST
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PostTripFunction.Arn}/invocations
+                passthroughBehavior: when_no_match
+              responses: {}
+            options:
+              x-amazon-apigateway-integration:
+                type: mock
+                requestTemplates:
+                  application/json: '{"statusCode": 200}'
+                responses:
+                  default:
+                    statusCode: '200'
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Headers: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'''
+                      method.response.header.Access-Control-Allow-Methods: '''GET,POST,PUT,PATCH,OPTIONS'''
+                      method.response.header.Access-Control-Allow-Origin: '''*'''
+              responses:
+                '200':
+                  description: OK
+                  headers:
+                    Access-Control-Allow-Headers:
+                      type: string
+                    Access-Control-Allow-Methods:
+                      type: string
+                    Access-Control-Allow-Origin:
+                      type: string
+          /trips/{id}:
+            get:
+              security:
+              - sigv4: []
+              parameters:
+              - name: id
+                in: path
+                required: true
+                type: string
+              x-amazon-apigateway-integration:
+                type: aws_proxy
+                httpMethod: POST
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetTripFunction.Arn}/invocations
+                passthroughBehavior: when_no_match
+              responses: {}
+            put:
+              security:
+              - sigv4: []
+              parameters:
+              - name: id
+                in: path
+                required: true
+                type: string
+              x-amazon-apigateway-integration:
+                type: aws_proxy
+                httpMethod: POST
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PutTripFunction.Arn}/invocations
+                passthroughBehavior: when_no_match
+              responses: {}
+            options:
+              x-amazon-apigateway-integration:
+                type: mock
+                requestTemplates:
+                  application/json: '{"statusCode": 200}'
+                responses:
+                  default:
+                    statusCode: '200'
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Headers: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'''
+                      method.response.header.Access-Control-Allow-Methods: '''GET,POST,PUT,PATCH,OPTIONS'''
+                      method.response.header.Access-Control-Allow-Origin: '''*'''
+              responses:
+                '200':
+                  description: OK
+                  headers:
+                    Access-Control-Allow-Headers:
+                      type: string
+                    Access-Control-Allow-Methods:
+                      type: string
+                    Access-Control-Allow-Origin:
+                      type: string
+          /trips/{id}/permission:
+            patch:
+              security:
+              - sigv4: []
+              parameters:
+              - name: id
+                in: path
+                required: true
+                type: string
+              x-amazon-apigateway-integration:
+                type: aws_proxy
+                httpMethod: POST
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PatchPermissionFunction.Arn}/invocations
+                passthroughBehavior: when_no_match
+              responses: {}
+            options:
+              x-amazon-apigateway-integration:
+                type: mock
+                requestTemplates:
+                  application/json: '{"statusCode": 200}'
+                responses:
+                  default:
+                    statusCode: '200'
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Headers: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'''
+                      method.response.header.Access-Control-Allow-Methods: '''GET,POST,PUT,PATCH,OPTIONS'''
+                      method.response.header.Access-Control-Allow-Origin: '''*'''
+              responses:
+                '200':
+                  description: OK
+                  headers:
+                    Access-Control-Allow-Headers:
+                      type: string
+                    Access-Control-Allow-Methods:
+                      type: string
+                    Access-Control-Allow-Origin:
+                      type: string
   GatewayResponse4XX:
     Type: AWS::ApiGateway::GatewayResponse
     Properties:
@@ -85,51 +217,6 @@ Resources:
       RestApiId:
         Ref: TripPlannerApi
       ResponseType: DEFAULT_5XX
-      ResponseParameters:
-        gatewayresponse.header.Access-Control-Allow-Origin: '''*'''
-        gatewayresponse.header.Access-Control-Allow-Headers: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'''
-  GatewayResponseIntegrationFailure:
-    Type: AWS::ApiGateway::GatewayResponse
-    Properties:
-      RestApiId:
-        Ref: TripPlannerApi
-      ResponseType: INTEGRATION_FAILURE
-      ResponseParameters:
-        gatewayresponse.header.Access-Control-Allow-Origin: '''*'''
-        gatewayresponse.header.Access-Control-Allow-Headers: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'''
-  GatewayResponseIntegrationTimeout:
-    Type: AWS::ApiGateway::GatewayResponse
-    Properties:
-      RestApiId:
-        Ref: TripPlannerApi
-      ResponseType: INTEGRATION_TIMEOUT
-      ResponseParameters:
-        gatewayresponse.header.Access-Control-Allow-Origin: '''*'''
-        gatewayresponse.header.Access-Control-Allow-Headers: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'''
-  GatewayResponseApiConfigError:
-    Type: AWS::ApiGateway::GatewayResponse
-    Properties:
-      RestApiId:
-        Ref: TripPlannerApi
-      ResponseType: API_CONFIGURATION_ERROR
-      ResponseParameters:
-        gatewayresponse.header.Access-Control-Allow-Origin: '''*'''
-        gatewayresponse.header.Access-Control-Allow-Headers: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'''
-  GatewayResponseAuthorizerFailure:
-    Type: AWS::ApiGateway::GatewayResponse
-    Properties:
-      RestApiId:
-        Ref: TripPlannerApi
-      ResponseType: AUTHORIZER_FAILURE
-      ResponseParameters:
-        gatewayresponse.header.Access-Control-Allow-Origin: '''*'''
-        gatewayresponse.header.Access-Control-Allow-Headers: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'''
-  GatewayResponseAuthorizerConfigError:
-    Type: AWS::ApiGateway::GatewayResponse
-    Properties:
-      RestApiId:
-        Ref: TripPlannerApi
-      ResponseType: AUTHORIZER_CONFIGURATION_ERROR
       ResponseParameters:
         gatewayresponse.header.Access-Control-Allow-Origin: '''*'''
         gatewayresponse.header.Access-Control-Allow-Headers: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'''
@@ -155,16 +242,6 @@ Resources:
       - DynamoDBCrudPolicy:
           TableName:
             Ref: TripsTable
-      Events:
-        Api:
-          Type: Api
-          Properties:
-            RestApiId:
-              Ref: TripPlannerApi
-            Path: /trips
-            Method: post
-            Auth:
-              Authorizer: AWS_IAM
     Metadata:
       SamResourceId: PostTripFunction
   PostTripPermission:
@@ -187,16 +264,6 @@ Resources:
       - DynamoDBReadPolicy:
           TableName:
             Ref: TripsTable
-      Events:
-        Api:
-          Type: Api
-          Properties:
-            RestApiId:
-              Ref: TripPlannerApi
-            Path: /trips/{id}
-            Method: get
-            Auth:
-              Authorizer: AWS_IAM
     Metadata:
       SamResourceId: GetTripFunction
   GetTripPermission:
@@ -219,16 +286,6 @@ Resources:
       - DynamoDBCrudPolicy:
           TableName:
             Ref: TripsTable
-      Events:
-        Api:
-          Type: Api
-          Properties:
-            RestApiId:
-              Ref: TripPlannerApi
-            Path: /trips/{id}
-            Method: put
-            Auth:
-              Authorizer: AWS_IAM
     Metadata:
       SamResourceId: PutTripFunction
   PutTripPermission:
@@ -251,16 +308,6 @@ Resources:
       - DynamoDBCrudPolicy:
           TableName:
             Ref: TripsTable
-      Events:
-        Api:
-          Type: Api
-          Properties:
-            RestApiId:
-              Ref: TripPlannerApi
-            Path: /trips/{id}/permission
-            Method: patch
-            Auth:
-              Authorizer: AWS_IAM
     Metadata:
       SamResourceId: PatchPermissionFunction
   PatchPermissionPermission:
