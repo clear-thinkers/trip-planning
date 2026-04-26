@@ -6,7 +6,7 @@ import { getWarnings, getWarningsForTrip } from "./warnings.js";
 import { getDefaultItemTypeColor, getItemMeta, getItemTypeColor, renderCurrencyOptions, renderItemTypeStyle, renderStatusIcon, renderTimelineRow } from "./render-shared.js";
 import { els, getSelectedPeople, populatePeopleSelect, setSelectedPeople, updateDateTimeTbdControls, updateItemFormForType } from "./init.js";
 import { bindPackingActions, getPackingFilterTagOptions, renderPackingControls } from "./render-packing.js";
-import { generateShareUrl } from "./share.js";
+import { buildShareUrl, saveToCloud } from "./share.js";
 
 const render = requestRender;
 const MOBILE_BREAKPOINT = 768;
@@ -2077,18 +2077,65 @@ export function printCalendar() {
 }
 
 export async function shareTrip() {
-  const url = await generateShareUrl(state.trip);
-  const btn = els.shareButton;
-  try {
-    await navigator.clipboard.writeText(url);
-  } catch {
-    window.prompt("Copy this share link:", url);
-    return;
+  const panel = document.getElementById("sharePanel");
+  if (!panel) return;
+  const trip = state.trip;
+  if (!trip) return;
+
+  if (!trip.cloudId) {
+    panel.hidden = false;
+    const statusEl = document.getElementById("shareStatus");
+    const linkRow = document.getElementById("shareLinkRow");
+    const permsDiv = document.getElementById("sharePermissions");
+    if (statusEl) statusEl.textContent = "Saving to cloud…";
+    if (linkRow) linkRow.hidden = true;
+    if (permsDiv) permsDiv.hidden = true;
+    try {
+      const result = await saveToCloud(trip);
+      trip.cloudId = result.id;
+      trip.ownerId = result.ownerId;
+      trip.permission = result.permission;
+      saveStore();
+      history.replaceState(null, "", buildShareUrl(trip.cloudId));
+    } catch (err) {
+      if (statusEl) statusEl.textContent = "Failed to save. Check your connection and try again.";
+      return;
+    }
   }
-  if (!btn) return;
-  const original = btn.textContent;
-  btn.textContent = "Copied!";
-  setTimeout(() => { btn.textContent = original; }, 2000);
+
+  renderSharePanel();
+}
+
+function renderSharePanel() {
+  const trip = state.trip;
+  if (!trip?.cloudId) return;
+
+  const statusEl = document.getElementById("shareStatus");
+  const linkInput = document.getElementById("shareLink");
+  const linkRow = document.getElementById("shareLinkRow");
+  const permsDiv = document.getElementById("sharePermissions");
+
+  if (statusEl) statusEl.textContent = "";
+  if (linkInput) linkInput.value = buildShareUrl(trip.cloudId);
+  if (linkRow) linkRow.hidden = false;
+
+  const isOwner = !trip.ownerId || trip.ownerId === state.currentIdentityId;
+  if (permsDiv) {
+    permsDiv.hidden = !isOwner;
+    if (isOwner) {
+      permsDiv.querySelectorAll(".perm-btn").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.perm === trip.permission);
+      });
+    }
+  }
+}
+
+export function renderReadOnlyBanner() {
+  const banner = document.getElementById("readOnlyBanner");
+  if (!banner) return;
+  const trip = state.trip;
+  const isOwner = !trip?.ownerId || trip.ownerId === state.currentIdentityId;
+  banner.hidden = !trip || isOwner || trip.permission !== "read_only";
 }
 
 export function exportTrip() {

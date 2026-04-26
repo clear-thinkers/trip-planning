@@ -13,6 +13,7 @@
     <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png" />
     <link rel="stylesheet" href="styles.css" />
     <link rel="manifest" href="manifest.json" />
+    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1691.0.min.js"></script>
   </head>
   <body>
     <div id="updateBanner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#2f6f73;color:#ffffff;text-align:center;padding:12px 16px;font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;font-size:0.95rem;">
@@ -43,6 +44,7 @@
       </header>
 
       <main>
+        <div class="alert cloud-error-banner" id="cloudErrorBanner" hidden></div>
         <div class="alert" id="bootWarning" style="margin: 0 auto 16px; max-width: 1440px;">
           <strong>Local server needed</strong>
           <span>This app now uses browser ES modules. Open it through `http://localhost`, not directly from `file:///...`. Run `node serve-local.mjs` in this folder, then open the local URL it prints.</span>
@@ -85,6 +87,10 @@
             </div>
           </div>
         </section>
+
+        <div class="read-only-banner" id="readOnlyBanner" hidden>
+          This trip is view only — your changes won't be saved.
+        </div>
 
         <section class="workspace app-screen" id="workspace" hidden>
           <nav class="view-tabs" aria-label="Views">
@@ -337,6 +343,28 @@
         </div>
       </form>
     </dialog>
+
+    <div class="share-panel-backdrop" id="sharePanel" hidden>
+      <div class="share-panel" role="dialog" aria-label="Share trip">
+        <div class="share-panel-header">
+          <h3>Share trip</h3>
+          <button class="icon-button" id="closePanelBtn" type="button" aria-label="Close">x</button>
+        </div>
+        <p class="share-status" id="shareStatus"></p>
+        <div class="share-link-row" id="shareLinkRow" hidden>
+          <input type="text" id="shareLink" class="share-link-input" readonly aria-label="Share link" />
+          <button class="secondary-button" id="copyLinkBtn" type="button">Copy link</button>
+        </div>
+        <div class="share-permissions" id="sharePermissions" hidden>
+          <p class="share-permissions-label">Who can access:</p>
+          <div class="perm-buttons">
+            <button class="perm-btn" data-perm="private" type="button">Private</button>
+            <button class="perm-btn" data-perm="read_only" type="button">View only</button>
+            <button class="perm-btn" data-perm="editor" type="button">Anyone can edit</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <script type="module" src="app.js"></script>
   </body>

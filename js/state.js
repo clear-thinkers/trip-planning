@@ -28,6 +28,7 @@ export function requestRender() {
 export const state = {
   store: loadStore(),
   trip: null,
+  currentIdentityId: null,
   screen: "trips",
   view: "calendar",
   packingSubView: "list",
@@ -109,9 +110,12 @@ export function normalizeTrip(trip) {
   const packCategories = normalizePackCategories(trip.packCategories);
   return {
     id: trip.id || createId(),
-    title: trip.title || "Japan Family Trip",
-    startDate: trip.startDate || "2026-05-12",
-    endDate: trip.endDate || "2026-05-19",
+    cloudId: trip.cloudId ?? null,
+    permission: ["private", "read_only", "editor"].includes(trip.permission) ? trip.permission : "private",
+    ownerId: trip.ownerId ?? null,
+    title: trip.title || "New Trip",
+    startDate: trip.startDate || toIsoDate(new Date()),
+    endDate: trip.endDate || toIsoDate(new Date()),
     homeTimezone: normalizeTimezone(trip.homeTimezone),
     itemTypeColors: normalizeItemTypeColors(trip.itemTypeColors),
     costSettings: normalizeCostSettings(trip.costSettings),
@@ -288,11 +292,14 @@ export function normalizeBag(bag, fallbackOrder = 0) {
 }
 
 export function createSampleTrip() {
+  const today = toIsoDate(new Date());
+  const end = new Date();
+  end.setDate(end.getDate() + 7);
   return {
     id: createId(),
-    title: "Japan Family Trip",
-    startDate: "2026-05-12",
-    endDate: "2026-05-19",
+    title: "New Trip",
+    startDate: today,
+    endDate: toIsoDate(end),
     homeTimezone: DEFAULT_TIMEZONE,
     itemTypeColors: normalizeItemTypeColors(),
     costSettings: normalizeCostSettings(),
@@ -301,46 +308,8 @@ export function createSampleTrip() {
     packCategories: normalizePackCategories(),
     packItems: [],
     bags: [],
-    items: [
-      normalizeItem({
-        type: "Flight",
-        title: "SFO to Tokyo",
-        startDateTime: "2026-05-12T09:30",
-        endDateTime: "2026-05-13T14:20",
-        departureCity: "San Francisco",
-        arrivalCity: "Tokyo",
-        airline: "Japan Airlines",
-        status: "Booked",
-        confirmationCode: "JL001",
-        people: ["Alex"],
-      }),
-      sampleItem("Hotel", "Check in at Ginza stay", "2026-05-13T16:00", "2026-05-16T10:00", "Tokyo", "Ginza", "Confirmed", "HTL-4821", []),
-      sampleItem("Meal", "Dinner with auntie", "2026-05-13T19:00", "2026-05-13T21:00", "Tokyo", "Shinjuku", "Planned", "", ["Auntie", "Mom"]),
-      sampleItem("Activity", "TeamLab reservation", "2026-05-14T10:30", "2026-05-14T12:30", "Tokyo", "Toyosu", "Idea", "", []),
-      sampleItem("Family Visit", "Visit cousin", "2026-05-14T18:00", "2026-05-14T21:30", "Tokyo", "Meguro", "Planned", "", ["Cousin"]),
-      sampleItem("Transit", "Shinkansen to Kyoto", "2026-05-16T11:30", "2026-05-16T14:00", "Kyoto", "Tokyo Station to Kyoto Station", "Booked", "JR-912", []),
-      sampleItem("Hotel", "Kyoto ryokan", "2026-05-16T15:30", "2026-05-19T10:00", "Kyoto", "Gion", "Confirmed", "RYK-1190", []),
-      sampleItem("Activity", "Fushimi Inari early walk", "2026-05-17T08:00", "2026-05-17T10:30", "Kyoto", "Fushimi Inari", "Planned", "", []),
-      sampleItem("Rest", "Slow morning", "2026-05-18T09:00", "2026-05-18T10:30", "Kyoto", "Ryokan", "Planned", "", []),
-      sampleItem("Reminder", "Buy gifts for family", "2026-05-18T15:00", "2026-05-18T16:00", "Kyoto", "Nishiki Market", "Idea", "", []),
-    ],
+    items: [],
   };
-}
-
-export function sampleItem(type, title, start, end, city, location, status, confirmationCode, people) {
-  return normalizeItem({
-    type,
-    title,
-    startDateTime: start,
-    endDateTime: end,
-    city,
-    location,
-    status,
-    confirmationCode,
-    people,
-    tags: [],
-    notes: "",
-  });
 }
 
 export function saveStore() {

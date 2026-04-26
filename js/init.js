@@ -1,8 +1,9 @@
 import { CURRENCIES, DEFAULT_PEOPLE, ITEM_TYPES, STATUSES, TIMEZONES } from "./constants.js";
 import { debounce } from "./format.js";
-import { getActiveTrip, requestRender, state } from "./state.js";
+import { getActiveTrip, requestRender, saveStore, state } from "./state.js";
 import { createNewTrip, deleteCurrentItem, exportTrip, getSelectedFilterValues, importTrip, openItemDialog, printCalendar, saveItemFromForm, setSelectedFilterValues, closeItemDialog, copyCurrentItemToDate, updateTripSettings, shareTrip } from "./render-views.js";
 import { closePackItemDialog, deleteCurrentPackItem, savePackItemFromForm, syncPackItemSubcategoryOptions } from "./render-packing.js";
+import { setTripPermission } from "./share.js";
 
 const render = requestRender;
 
@@ -102,12 +103,22 @@ export function cacheElements() {
     "packItemNotes",
     "tripSettingsToggle",
     "tripSettingsSummaryText",
+    "sharePanel",
+    "shareStatus",
+    "shareLink",
+    "shareLinkRow",
+    "sharePermissions",
+    "copyLinkBtn",
+    "closePanelBtn",
+    "readOnlyBanner",
+    "cloudErrorBanner",
   ].forEach((id) => {
     els[id] = document.getElementById(id);
   });
   els.tabs = Array.from(document.querySelectorAll(".tab-button"));
   els.views = Array.from(document.querySelectorAll(".view-panel"));
   els.filterToggles = Array.from(document.querySelectorAll("[data-filter-toggle]"));
+  els.permButtons = Array.from(document.querySelectorAll(".perm-btn"));
 }
 
 export function populateSelects() {
@@ -287,6 +298,40 @@ export function bindEvents() {
   els.exportButton.addEventListener("click", exportTrip);
   els.importInput.addEventListener("change", importTrip);
   els.shareButton.addEventListener("click", shareTrip);
+
+  els.closePanelBtn?.addEventListener("click", () => {
+    if (els.sharePanel) els.sharePanel.hidden = true;
+  });
+
+  els.copyLinkBtn?.addEventListener("click", async () => {
+    const val = els.shareLink?.value;
+    if (!val) return;
+    try {
+      await navigator.clipboard.writeText(val);
+      const orig = els.copyLinkBtn.textContent;
+      els.copyLinkBtn.textContent = "Copied!";
+      setTimeout(() => { els.copyLinkBtn.textContent = orig; }, 2000);
+    } catch {
+      window.prompt("Copy this link:", val);
+    }
+  });
+
+  els.permButtons.forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const trip = state.trip;
+      if (!trip?.cloudId) return;
+      const perm = btn.dataset.perm;
+      try {
+        await setTripPermission(trip.cloudId, perm);
+        trip.permission = perm;
+        saveStore();
+        els.permButtons.forEach((b) => b.classList.toggle("active", b.dataset.perm === perm));
+      } catch (err) {
+        console.error("[trip-planner] Permission update failed:", err);
+      }
+    });
+  });
+
   els.packItemCategory?.addEventListener("change", () => syncPackItemSubcategoryOptions());
   els.packItemForm?.addEventListener("submit", savePackItemFromForm);
   els.closePackDialogButton?.addEventListener("click", closePackItemDialog);

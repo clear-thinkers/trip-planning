@@ -2562,3 +2562,124 @@ button:focus-visible {
     line-height: 1.45;
   }
 }
+
+/* ── Read-only banner ─────────────────────────────────────────────────────── */
+.read-only-banner {
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  border-radius: var(--radius);
+  color: #92400e;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin: 0 auto 12px;
+  max-width: 1440px;
+  padding: 10px 16px;
+  text-align: center;
+}
+
+/* ── Cloud error banner ───────────────────────────────────────────────────── */
+.cloud-error-banner {
+  background: #fee2e2;
+  border: 1px solid #f87171;
+  border-radius: var(--radius);
+  color: #991b1b;
+  font-size: 0.9rem;
+  margin: 0 auto 12px;
+  max-width: 1440px;
+  padding: 10px 16px;
+}
+
+/* ── Share panel ──────────────────────────────────────────────────────────── */
+.share-panel-backdrop {
+  align-items: flex-start;
+  background: rgba(31, 41, 51, 0.45);
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  left: 0;
+  padding-top: 120px;
+  position: fixed;
+  right: 0;
+  top: 0;
+  z-index: 1000;
+}
+
+.share-panel {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 24px;
+  width: 100%;
+  max-width: 440px;
+}
+
+.share-panel-header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.share-panel-header h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.share-status {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin: 0 0 12px;
+  min-height: 1.2em;
+}
+
+.share-link-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.share-link-input {
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  flex: 1;
+  font-size: 0.85rem;
+  min-width: 0;
+  padding: 8px 10px;
+}
+
+.share-permissions-label {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin: 0 0 8px;
+}
+
+.perm-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.perm-btn {
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 6px 14px;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.perm-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.perm-btn.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
