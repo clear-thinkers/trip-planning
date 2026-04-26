@@ -13,6 +13,7 @@ const HEADERS = {
 };
 
 exports.handler = async (event) => {
+  console.log('event:', JSON.stringify(event));
   try {
     const identityId = event.requestContext?.identity?.cognitoIdentityId;
     if (!identityId) {
