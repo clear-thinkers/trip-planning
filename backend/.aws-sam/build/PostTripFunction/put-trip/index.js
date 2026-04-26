@@ -12,49 +12,43 @@ const HEADERS = {
 };
 
 exports.handler = async (event) => {
-  const identityId = event.requestContext?.identity?.cognitoIdentityId;
-  if (!identityId) {
-    return { statusCode: 401, headers: HEADERS, body: JSON.stringify({ message: "Unauthorized" }) };
-  }
-
-  const id = event.pathParameters?.id;
-  if (!id) {
-    return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ message: "Missing trip id" }) };
-  }
-
-  let body;
   try {
-    body = JSON.parse(event.body || "{}");
-  } catch {
-    return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ message: "Invalid JSON" }) };
-  }
+    const identityId = event.requestContext?.identity?.cognitoIdentityId;
+    if (!identityId) {
+      return { statusCode: 401, headers: HEADERS, body: JSON.stringify({ message: "Unauthorized" }) };
+    }
 
-  if (!body.data || typeof body.data !== "object") {
-    return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ message: "Missing or invalid data field" }) };
-  }
+    const id = event.pathParameters?.id;
+    if (!id) {
+      return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ message: "Missing trip id" }) };
+    }
 
-  let existing;
-  try {
-    existing = await ddb.send(new GetCommand({ TableName: TABLE, Key: { id } }));
-  } catch (err) {
-    console.error("DynamoDB GetCommand failed:", err);
-    return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ message: "Failed to load trip", detail: err.message }) };
-  }
+    let body;
+    try {
+      body = JSON.parse(event.body || "{}");
+    } catch {
+      return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ message: "Invalid JSON" }) };
+    }
 
-  if (!existing.Item) {
-    return { statusCode: 404, headers: HEADERS, body: JSON.stringify({ message: "Trip not found" }) };
-  }
+    if (!body.data || typeof body.data !== "object") {
+      return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ message: "Missing or invalid data field" }) };
+    }
 
-  const item = existing.Item;
-  const isOwner = item.ownerId === identityId;
-  const canEdit = isOwner || item.permission === "editor";
+    const existing = await ddb.send(new GetCommand({ TableName: TABLE, Key: { id } }));
 
-  if (!canEdit) {
-    return { statusCode: 403, headers: HEADERS, body: JSON.stringify({ message: "Forbidden" }) };
-  }
+    if (!existing.Item) {
+      return { statusCode: 404, headers: HEADERS, body: JSON.stringify({ message: "Trip not found" }) };
+    }
 
-  const now = new Date().toISOString();
-  try {
+    const item = existing.Item;
+    const isOwner = item.ownerId === identityId;
+    const canEdit = isOwner || item.permission === "editor";
+
+    if (!canEdit) {
+      return { statusCode: 403, headers: HEADERS, body: JSON.stringify({ message: "Forbidden" }) };
+    }
+
+    const now = new Date().toISOString();
     await ddb.send(new UpdateCommand({
       TableName: TABLE,
       Key: { id },
@@ -62,14 +56,14 @@ exports.handler = async (event) => {
       ExpressionAttributeNames: { "#data": "data" },
       ExpressionAttributeValues: { ":data": JSON.stringify(body.data), ":now": now },
     }));
-  } catch (err) {
-    console.error("DynamoDB UpdateCommand failed:", err);
-    return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ message: "Failed to update trip", detail: err.message }) };
-  }
 
-  return {
-    statusCode: 200,
-    headers: HEADERS,
-    body: JSON.stringify({ id, updatedAt: now }),
-  };
+    return {
+      statusCode: 200,
+      headers: HEADERS,
+      body: JSON.stringify({ id, updatedAt: now }),
+    };
+  } catch (err) {
+    console.error("Unhandled error in put-trip:", err);
+    return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ message: err.message }) };
+  }
 };
