@@ -140,6 +140,20 @@ Resources:
         gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
         gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'"
 
+  # ── IAM: grant the pre-existing guest role access to invoke this API ─────────
+  GuestRoleApiPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: TripPlannerGuestInvokeApi
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: execute-api:Invoke
+            Resource: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${TripPlannerApi}/*'
+      Roles:
+        - trip-planner-guest-role
+
   # ── Lambda Functions ──────────────────────────────────────────────────────────
   PostTripFunction:
     Type: AWS::Serverless::Function
