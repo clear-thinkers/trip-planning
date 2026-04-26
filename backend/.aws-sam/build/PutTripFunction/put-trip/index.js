@@ -33,7 +33,14 @@ exports.handler = async (event) => {
     return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ message: "Missing or invalid data field" }) };
   }
 
-  const existing = await ddb.send(new GetCommand({ TableName: TABLE, Key: { id } }));
+  let existing;
+  try {
+    existing = await ddb.send(new GetCommand({ TableName: TABLE, Key: { id } }));
+  } catch (err) {
+    console.error("DynamoDB GetCommand failed:", err);
+    return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ message: "Failed to load trip", detail: err.message }) };
+  }
+
   if (!existing.Item) {
     return { statusCode: 404, headers: HEADERS, body: JSON.stringify({ message: "Trip not found" }) };
   }
@@ -47,13 +54,18 @@ exports.handler = async (event) => {
   }
 
   const now = new Date().toISOString();
-  await ddb.send(new UpdateCommand({
-    TableName: TABLE,
-    Key: { id },
-    UpdateExpression: "SET #data = :data, updatedAt = :now",
-    ExpressionAttributeNames: { "#data": "data" },
-    ExpressionAttributeValues: { ":data": JSON.stringify(body.data), ":now": now },
-  }));
+  try {
+    await ddb.send(new UpdateCommand({
+      TableName: TABLE,
+      Key: { id },
+      UpdateExpression: "SET #data = :data, updatedAt = :now",
+      ExpressionAttributeNames: { "#data": "data" },
+      ExpressionAttributeValues: { ":data": JSON.stringify(body.data), ":now": now },
+    }));
+  } catch (err) {
+    console.error("DynamoDB UpdateCommand failed:", err);
+    return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ message: "Failed to update trip", detail: err.message }) };
+  }
 
   return {
     statusCode: 200,

@@ -22,7 +22,14 @@ exports.handler = async (event) => {
     return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ message: "Missing trip id" }) };
   }
 
-  const result = await ddb.send(new GetCommand({ TableName: TABLE, Key: { id } }));
+  let result;
+  try {
+    result = await ddb.send(new GetCommand({ TableName: TABLE, Key: { id } }));
+  } catch (err) {
+    console.error("DynamoDB GetCommand failed:", err);
+    return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ message: "Failed to load trip", detail: err.message }) };
+  }
+
   if (!result.Item) {
     return { statusCode: 404, headers: HEADERS, body: JSON.stringify({ message: "Trip not found" }) };
   }

@@ -38,7 +38,14 @@ exports.handler = async (event) => {
     };
   }
 
-  const existing = await ddb.send(new GetCommand({ TableName: TABLE, Key: { id } }));
+  let existing;
+  try {
+    existing = await ddb.send(new GetCommand({ TableName: TABLE, Key: { id } }));
+  } catch (err) {
+    console.error("DynamoDB GetCommand failed:", err);
+    return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ message: "Failed to load trip", detail: err.message }) };
+  }
+
   if (!existing.Item) {
     return { statusCode: 404, headers: HEADERS, body: JSON.stringify({ message: "Trip not found" }) };
   }
@@ -48,12 +55,17 @@ exports.handler = async (event) => {
   }
 
   const now = new Date().toISOString();
-  await ddb.send(new UpdateCommand({
-    TableName: TABLE,
-    Key: { id },
-    UpdateExpression: "SET permission = :perm, updatedAt = :now",
-    ExpressionAttributeValues: { ":perm": body.permission, ":now": now },
-  }));
+  try {
+    await ddb.send(new UpdateCommand({
+      TableName: TABLE,
+      Key: { id },
+      UpdateExpression: "SET permission = :perm, updatedAt = :now",
+      ExpressionAttributeValues: { ":perm": body.permission, ":now": now },
+    }));
+  } catch (err) {
+    console.error("DynamoDB UpdateCommand failed:", err);
+    return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ message: "Failed to update permission", detail: err.message }) };
+  }
 
   return {
     statusCode: 200,

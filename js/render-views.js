@@ -2098,6 +2098,7 @@ export async function shareTrip() {
       saveStore();
       history.replaceState(null, "", buildShareUrl(trip.cloudId));
     } catch (err) {
+      console.error("[trip-planner] shareTrip failed:", err);
       if (statusEl) statusEl.textContent = "Failed to save. Check your connection and try again.";
       return;
     }

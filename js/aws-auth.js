@@ -26,8 +26,8 @@ export function getIdentityId() {
 
 export async function signedFetch(url, options = {}) {
   if (!AWS.config?.credentials) throw new Error("AWS auth not initialized");
-  if (AWS.config.credentials.needsRefresh()) {
-    await AWS.config.credentials.refreshPromise();
+  if (!AWS.config.credentials.accessKeyId || AWS.config.credentials.needsRefresh()) {
+    await AWS.config.credentials.getPromise();
   }
   const endpoint = new AWS.Endpoint(url);
   const req = new AWS.HttpRequest(endpoint, AWS_REGION);

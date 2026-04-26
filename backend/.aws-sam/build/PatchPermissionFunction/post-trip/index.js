@@ -32,17 +32,22 @@ exports.handler = async (event) => {
   const now = new Date().toISOString();
   const id = randomUUID();
 
-  await ddb.send(new PutCommand({
-    TableName: TABLE,
-    Item: {
-      id,
-      data: JSON.stringify(body.data),
-      ownerId: identityId,
-      permission: "private",
-      createdAt: now,
-      updatedAt: now,
-    },
-  }));
+  try {
+    await ddb.send(new PutCommand({
+      TableName: TABLE,
+      Item: {
+        id,
+        data: JSON.stringify(body.data),
+        ownerId: identityId,
+        permission: "private",
+        createdAt: now,
+        updatedAt: now,
+      },
+    }));
+  } catch (err) {
+    console.error("DynamoDB PutCommand failed:", err);
+    return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ message: "Failed to save trip", detail: err.message }) };
+  }
 
   return {
     statusCode: 201,
