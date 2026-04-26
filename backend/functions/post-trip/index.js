@@ -13,26 +13,26 @@ const HEADERS = {
 };
 
 exports.handler = async (event) => {
-  const identityId = event.requestContext?.identity?.cognitoIdentityId;
-  if (!identityId) {
-    return { statusCode: 401, headers: HEADERS, body: JSON.stringify({ message: "Unauthorized" }) };
-  }
-
-  let body;
   try {
-    body = JSON.parse(event.body || "{}");
-  } catch {
-    return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ message: "Invalid JSON" }) };
-  }
+    const identityId = event.requestContext?.identity?.cognitoIdentityId;
+    if (!identityId) {
+      return { statusCode: 401, headers: HEADERS, body: JSON.stringify({ message: "Unauthorized" }) };
+    }
 
-  if (!body.data || typeof body.data !== "object") {
-    return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ message: "Missing or invalid data field" }) };
-  }
+    let body;
+    try {
+      body = JSON.parse(event.body || "{}");
+    } catch {
+      return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ message: "Invalid JSON" }) };
+    }
 
-  const now = new Date().toISOString();
-  const id = randomUUID();
+    if (!body.data || typeof body.data !== "object") {
+      return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ message: "Missing or invalid data field" }) };
+    }
 
-  try {
+    const now = new Date().toISOString();
+    const id = randomUUID();
+
     await ddb.send(new PutCommand({
       TableName: TABLE,
       Item: {
@@ -44,14 +44,14 @@ exports.handler = async (event) => {
         updatedAt: now,
       },
     }));
-  } catch (err) {
-    console.error("DynamoDB PutCommand failed:", err);
-    return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ message: "Failed to save trip", detail: err.message }) };
-  }
 
-  return {
-    statusCode: 201,
-    headers: HEADERS,
-    body: JSON.stringify({ id, ownerId: identityId, permission: "private", createdAt: now, updatedAt: now }),
-  };
+    return {
+      statusCode: 201,
+      headers: HEADERS,
+      body: JSON.stringify({ id, ownerId: identityId, permission: "private", createdAt: now, updatedAt: now }),
+    };
+  } catch (err) {
+    console.error("Unhandled error in post-trip:", err);
+    return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ message: err.message }) };
+  }
 };

@@ -12,46 +12,45 @@ const HEADERS = {
 };
 
 exports.handler = async (event) => {
-  const identityId = event.requestContext?.identity?.cognitoIdentityId;
-  if (!identityId) {
-    return { statusCode: 401, headers: HEADERS, body: JSON.stringify({ message: "Unauthorized" }) };
-  }
-
-  const id = event.pathParameters?.id;
-  if (!id) {
-    return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ message: "Missing trip id" }) };
-  }
-
-  let result;
   try {
-    result = await ddb.send(new GetCommand({ TableName: TABLE, Key: { id } }));
+    const identityId = event.requestContext?.identity?.cognitoIdentityId;
+    if (!identityId) {
+      return { statusCode: 401, headers: HEADERS, body: JSON.stringify({ message: "Unauthorized" }) };
+    }
+
+    const id = event.pathParameters?.id;
+    if (!id) {
+      return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ message: "Missing trip id" }) };
+    }
+
+    const result = await ddb.send(new GetCommand({ TableName: TABLE, Key: { id } }));
+
+    if (!result.Item) {
+      return { statusCode: 404, headers: HEADERS, body: JSON.stringify({ message: "Trip not found" }) };
+    }
+
+    const item = result.Item;
+    const isOwner = item.ownerId === identityId;
+    const isShared = item.permission === "read_only" || item.permission === "editor";
+
+    if (!isOwner && !isShared) {
+      return { statusCode: 403, headers: HEADERS, body: JSON.stringify({ message: "This trip is private" }) };
+    }
+
+    return {
+      statusCode: 200,
+      headers: HEADERS,
+      body: JSON.stringify({
+        id: item.id,
+        data: JSON.parse(item.data),
+        ownerId: item.ownerId,
+        permission: item.permission,
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt,
+      }),
+    };
   } catch (err) {
-    console.error("DynamoDB GetCommand failed:", err);
-    return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ message: "Failed to load trip", detail: err.message }) };
+    console.error("Unhandled error in get-trip:", err);
+    return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ message: err.message }) };
   }
-
-  if (!result.Item) {
-    return { statusCode: 404, headers: HEADERS, body: JSON.stringify({ message: "Trip not found" }) };
-  }
-
-  const item = result.Item;
-  const isOwner = item.ownerId === identityId;
-  const isShared = item.permission === "read_only" || item.permission === "editor";
-
-  if (!isOwner && !isShared) {
-    return { statusCode: 403, headers: HEADERS, body: JSON.stringify({ message: "This trip is private" }) };
-  }
-
-  return {
-    statusCode: 200,
-    headers: HEADERS,
-    body: JSON.stringify({
-      id: item.id,
-      data: JSON.parse(item.data),
-      ownerId: item.ownerId,
-      permission: item.permission,
-      createdAt: item.createdAt,
-      updatedAt: item.updatedAt,
-    }),
-  };
 };
