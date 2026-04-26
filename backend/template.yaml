@@ -72,9 +72,6 @@ Resources:
         AllowMethods: "'GET,POST,PUT,PATCH,OPTIONS'"
         AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'"
         AllowOrigin: "'*'"
-      Auth:
-        DefaultAuthorizer: AWS_IAM
-        AddDefaultAuthorizerToCorsPreflight: false
 
   # ── Gateway Responses (ensures CORS headers on all error types) ──────────────
   GatewayResponse4XX:
@@ -170,6 +167,16 @@ Resources:
             RestApiId: !Ref TripPlannerApi
             Path: /trips
             Method: post
+            Auth:
+              Authorizer: AWS_IAM
+
+  PostTripPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt PostTripFunction.Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${TripPlannerApi}/*'
 
   GetTripFunction:
     Type: AWS::Serverless::Function
@@ -186,6 +193,16 @@ Resources:
             RestApiId: !Ref TripPlannerApi
             Path: /trips/{id}
             Method: get
+            Auth:
+              Authorizer: AWS_IAM
+
+  GetTripPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt GetTripFunction.Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${TripPlannerApi}/*'
 
   PutTripFunction:
     Type: AWS::Serverless::Function
@@ -202,6 +219,16 @@ Resources:
             RestApiId: !Ref TripPlannerApi
             Path: /trips/{id}
             Method: put
+            Auth:
+              Authorizer: AWS_IAM
+
+  PutTripPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt PutTripFunction.Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${TripPlannerApi}/*'
 
   PatchPermissionFunction:
     Type: AWS::Serverless::Function
@@ -218,6 +245,16 @@ Resources:
             RestApiId: !Ref TripPlannerApi
             Path: /trips/{id}/permission
             Method: patch
+            Auth:
+              Authorizer: AWS_IAM
+
+  PatchPermissionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt PatchPermissionFunction.Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${TripPlannerApi}/*'
 
 Outputs:
   ApiUrl:
