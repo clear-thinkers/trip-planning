@@ -316,20 +316,20 @@ export function bindEvents() {
     }
   });
 
-  els.permButtons.forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      const trip = state.trip;
-      if (!trip?.cloudId) return;
-      const perm = btn.dataset.perm;
-      try {
-        await setTripPermission(trip.cloudId, perm);
-        trip.permission = perm;
-        saveStore();
-        els.permButtons.forEach((b) => b.classList.toggle("active", b.dataset.perm === perm));
-      } catch (err) {
-        console.error("[trip-planner] Permission update failed:", err);
-      }
-    });
+  document.addEventListener("click", async (e) => {
+    const btn = e.target.closest(".perm-btn");
+    if (!btn) return;
+    const trip = state.trip;
+    if (!trip?.cloudId) return;
+    const perm = btn.dataset.perm;
+    try {
+      await setTripPermission(trip.cloudId, perm);
+      trip.permission = perm;
+      saveStore();
+      document.querySelectorAll(".perm-btn").forEach((b) => b.classList.toggle("active", b.dataset.perm === perm));
+    } catch (err) {
+      console.error("[trip-planner] Permission update failed:", err);
+    }
   });
 
   els.packItemCategory?.addEventListener("change", () => syncPackItemSubcategoryOptions());
