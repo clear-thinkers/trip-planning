@@ -54,7 +54,8 @@ exports.handler = async (event) => {
     await ddb.send(new UpdateCommand({
       TableName: TABLE,
       Key: { id },
-      UpdateExpression: "SET permission = :perm, updatedAt = :now",
+      UpdateExpression: "SET #perm = :perm, updatedAt = :now",
+      ExpressionAttributeNames: { "#perm": "permission" },
       ExpressionAttributeValues: { ":perm": body.permission, ":now": now },
     }));
 
