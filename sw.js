@@ -1,4 +1,4 @@
-const CACHE = "trip-planner-v35";
+const CACHE = "trip-planner-v36";
 const ASSETS = [
   "./",
   "./index.html",
@@ -10,6 +10,9 @@ const ASSETS = [
   "./icon-512.png",
   "./brand.svg",
   "./offline.html",
+  "./js/api.js",
+  "./js/aws-auth.js",
+  "./js/aws-config.js",
   "./js/constants.js",
   "./js/data.js",
   "./js/format.js",
@@ -17,6 +20,7 @@ const ASSETS = [
   "./js/render-packing.js",
   "./js/render-shared.js",
   "./js/render-views.js",
+  "./js/share.js",
   "./js/state.js",
   "./js/warnings.js",
 ];
