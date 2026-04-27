@@ -306,7 +306,9 @@ export function bindEvents() {
     if (els.sharePanel) els.sharePanel.hidden = true;
   });
 
-  els.refreshCloudButton?.addEventListener("click", () => syncNow());
+  document.addEventListener("click", (e) => {
+    if (e.target.closest("#refreshCloudButton")) syncNow();
+  });
 
   els.copyLinkBtn?.addEventListener("click", async () => {
     const val = els.shareLink?.value;

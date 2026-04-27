@@ -48,6 +48,7 @@ export function scheduleCloudSave(trip, currentIdentityId) {
   if (!isOwner && trip.permission !== "editor") return;
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(async () => {
+    _saveTimer = null;
     try {
       const { cloudId, ownerId, permission, ...data } = trip;
       await updateTrip(cloudId, data);
