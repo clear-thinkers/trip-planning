@@ -19,15 +19,19 @@ The app should support both overview and cleanup:
 
 ## 2. Current App Architecture
 
-The app now runs as a browser ES module app served from `http://localhost`. It is also a Progressive Web App and can be installed on iOS via "Add to Home Screen" when served over HTTPS.
+The app now runs as a browser ES module app served from `http://localhost`. It is also a Progressive Web App and can be installed on iOS via "Add to Home Screen" when served over HTTPS. Cloud sharing and collaboration are backed by an AWS serverless stack.
 
 Current file roles:
 
-- `app.js`: top-level render loop, screen coordination, and service worker registration
+- `app.js`: top-level render loop, screen coordination, cloud sync lifecycle, and service worker registration
 - `js/init.js`: element caching, select population, event binding
 - `js/state.js`: normalization, defaults, sample data, persistence
-- `js/render-views.js`: trips, itinerary views, planning todos, costs, controls, printing, import/export, URL sharing
-- `js/share.js`: compress trip to base64url hash via `CompressionStream`, generate share URL, load trip from URL hash on startup
+- `js/render-views.js`: trips, itinerary views, planning todos, costs, controls, printing, import/export, cloud share panel
+- `js/share.js`: cloud save/load via API, URL construction, debounced auto-save, `hasPendingSave` guard
+- `js/cloud-sync.js`: 30-second poll loop for cloud trips, visibility-aware pause/resume, manual sync trigger, "last synced" display
+- `js/api.js`: thin wrapper around `signedFetch` for `POST /trips`, `GET /trips/{id}`, `PUT /trips/{id}`, `PATCH /trips/{id}/permission`
+- `js/aws-auth.js`: AWS Cognito unauthenticated identity init, SigV4 request signing via AWS SDK v2
+- `js/aws-config.js`: `API_BASE_URL`, `IDENTITY_POOL_ID`, `AWS_REGION` constants; `AWS_CONFIGURED` flag
 - `js/render-packing.js`: packing list, bag planner, packing dialogs, packing controls
 - `js/data.js`: derived trip data, filters, costs, packing progress
 - `js/warnings.js`: trip and packing warning generation
@@ -38,6 +42,11 @@ Current file roles:
 - `manifest.json`: PWA manifest — display name, standalone display mode, theme color, and icons for home screen installation
 - `offline.html`: fallback page served when a fetch fails and the resource is not in cache
 - `brand.svg`: local brand image used in the app header (replaces external image dependency)
+- `backend/template.yaml`: AWS SAM template — API Gateway (inline OpenAPI with AWS_IAM/SigV4 auth), Lambda functions, DynamoDB table, Cognito Identity Pool, IAM roles and resource-based Lambda permissions
+- `backend/functions/post-trip/index.js`: creates a trip in DynamoDB; sets `ownerId` from Cognito identity
+- `backend/functions/get-trip/index.js`: fetches a trip; enforces `private` permission check against caller identity
+- `backend/functions/put-trip/index.js`: full trip replace; requires owner or `editor` permission
+- `backend/functions/patch-permission/index.js`: updates `permission` field; owner-only
 
 The design goal of the reorg is to keep each major workflow editable without returning to a single giant file.
 
@@ -112,7 +121,12 @@ Implemented:
 - calendar drag-and-drop for itinerary date changes
 - drag-to-reorder for todos, subtodos, bags, categories, and sub-categories where relevant
 - JSON export/import
-- URL sharing — trip compressed with native `CompressionStream` and encoded as a `#trip=` hash fragment; opening the link imports the trip automatically
+- Cloud sharing — trip saved to AWS DynamoDB; share link uses `#trip=<uuid>` hash; recipients open the link and the trip is fetched from the API automatically
+- Permission control — owner sets `private`, `read_only`, or `editor` access from the share panel; optimistic UI with revert on failure
+- Cloud auto-save — debounced 1.5-second save to cloud after every edit, for owners and editors
+- Cloud polling — active trips with a `cloudId` poll `GET /trips/{id}` every 30 seconds; pauses when tab is hidden, resumes on focus; manual refresh button in topbar; "Last synced X seconds ago" in share panel
+- Read-only banner — shown to non-owner visitors on `read_only` trips
+- Cognito unauthenticated identity — each browser gets a stable anonymous identity used for ownership and SigV4 signing
 - file-storage recovery helper for old `file:///` usage
 - print-friendly calendar output with status legend
 - typed confirmations for destructive actions
@@ -122,7 +136,6 @@ Explicitly not in scope right now:
 
 - live booking sync
 - email parsing
-- collaboration
 - mobile native packaging
 - live exchange-rate lookup
 - automatic reminders/calendar integrations
@@ -486,16 +499,29 @@ Examples already implemented:
 
 ## 11. Data Storage
 
-The current implementation is local-first.
+The app is local-first with optional cloud sync.
 
-Current storage model:
+Local storage model:
 
-- browser `localStorage`
+- browser `localStorage` — primary store for all trips and settings
 - JSON export/import for backup and transfer
-- URL sharing via `#trip=<base64url-deflate>` hash fragment — no server required; the full trip is encoded client-side using the native `CompressionStream` API
 - `recover-file-storage.html` for migrating old `file:///` local storage into the served app
 
-Export/import and URL sharing preserve:
+Cloud storage model (AWS):
+
+- **DynamoDB** table `trip-planner-trips` — stores trips as `{ id, data, ownerId, permission, createdAt, updatedAt }`; `data` is the full trip JSON
+- **API Gateway** (SigV4/AWS_IAM auth) exposes four endpoints: `POST /trips`, `GET /trips/{id}`, `PUT /trips/{id}`, `PATCH /trips/{id}/permission`
+- **Cognito Identity Pool** (unauthenticated) issues stable anonymous identities; the Cognito identity ID is used as `ownerId` and for permission enforcement
+- **Lambda** functions (Node.js 20.x) — one per endpoint; resource-based permissions (no IAM credentials injection)
+- **Share URL** format: `#trip=<uuid>` — the UUID is the DynamoDB item key; opening the link fetches the trip from the API
+
+Cloud sync behavior:
+
+- `saveToCloud` (via `scheduleCloudSave`) debounces writes 1.5 s after each edit; only fires for owners and editors
+- `cloud-sync.js` polls `GET /trips/{id}` every 30 s; merges server data if `result.updatedAt` is newer than the last known server timestamp; skips the merge cycle if a local auto-save is pending
+- Polling pauses when the tab is hidden and resumes (with an immediate fetch) when visibility returns
+
+Export/import preserves:
 
 - itinerary items
 - planning todo hierarchy
@@ -518,21 +544,26 @@ These confirmations are intentionally stronger than a simple click-through warni
 
 ## 13. Tech Direction
 
-The current implementation stays intentionally lightweight:
+The frontend stays intentionally lightweight:
 
 - static HTML and CSS
 - browser-native modules instead of a framework build step
-- local persistence instead of backend storage
 - rendering organized by workflow rather than by framework convention
 - service worker for offline-first caching and iOS home screen installation (PWA)
 
-The PWA layer adds no build step or dependency. The service worker pre-caches all app assets at install time using a cache-first strategy. When a new version deploys, the activate handler notifies open windows so a visible update banner can prompt the user to reload.
+The backend uses AWS SAM (Serverless Application Model):
 
-**Cache busting:** Because the strategy is cache-first, any change to a cached asset (CSS, JS, HTML) will not be visible in the browser until the `CACHE` constant in `sw.js` is bumped to a new version string (e.g. `"trip-planner-v3"` → `"trip-planner-v4"`). The old service worker's activate handler deletes the previous cache, so the next page load fetches fresh files. Always bump the cache version alongside any front-end asset change, or the browser will silently serve stale files.
+- **API Gateway** — inline OpenAPI `DefinitionBody` with `x-amazon-apigateway-authtype: awsSigv4`; no integration credentials field so invocation relies entirely on resource-based Lambda permissions
+- **Lambda** — Node.js 20.x; one function per route; `DynamoDBCrudPolicy` / `DynamoDBReadPolicy` managed policies
+- **DynamoDB** — single-table `trip-planner-trips`, PAY_PER_REQUEST, hash key `id`
+- **Cognito Identity Pool** — unauthenticated identities; the `trip-planner-guest-role` IAM role is granted `execute-api:Invoke` via `GuestRoleApiPolicy`
+- Deploy: `sam build && sam deploy` from `backend/`
+
+**Auth flow:** the browser calls `AWS.CognitoIdentityCredentials.getPromise()` on startup to obtain temporary SigV4 credentials. Every API call is signed with `AWS.Signers.V4` before fetch. The Cognito identity ID is forwarded by API Gateway in `requestContext.identity.cognitoIdentityId` and used by Lambda for ownership checks.
+
+**Cache busting:** Because the strategy is cache-first, any change to a cached asset (CSS, JS, HTML) will not be visible in the browser until the `CACHE` constant in `sw.js` is bumped to a new version string. The old service worker's activate handler deletes the previous cache. Always bump the cache version alongside any front-end asset change, or the browser will silently serve stale files.
 
 HTTPS is required in production for service workers and the home screen install prompt. The local `http://localhost` dev server bypasses this restriction for development.
-
-This keeps the app easy to inspect and edit while the workflow model is still evolving.
 
 ## 14. Next Useful Enhancements
 

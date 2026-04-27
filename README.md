@@ -32,21 +32,26 @@ Once installed, the app loads fully offline from the local cache. All trip data 
 
 ## App Structure
 
-- `app.js` boots the app, coordinates top-level rendering, and registers the service worker
+- `app.js` boots the app, coordinates top-level rendering, manages cloud sync lifecycle, and registers the service worker
 - `js/init.js` caches DOM nodes, populates controls, and binds events
 - `js/state.js` normalizes trip data and owns local persistence
-- `js/render-views.js` renders trips, itinerary views, planning todos, costs, controls, import/export, sharing, and print
-- `js/share.js` compresses a trip to a base64url hash and reads it back from the URL on load
+- `js/render-views.js` renders trips, itinerary views, planning todos, costs, controls, import/export, cloud share panel, and print
+- `js/share.js` cloud save/load via API, share URL construction (`#trip=<uuid>`), debounced auto-save, pending-save guard
+- `js/cloud-sync.js` 30-second poll loop for cloud trips; pauses when tab is hidden; manual sync trigger; "last synced" display
+- `js/api.js` signed API calls — `POST /trips`, `GET /trips/{id}`, `PUT /trips/{id}`, `PATCH /trips/{id}/permission`
+- `js/aws-auth.js` Cognito unauthenticated identity init and SigV4 request signing
+- `js/aws-config.js` `API_BASE_URL`, `IDENTITY_POOL_ID`, and `AWS_REGION` constants
 - `js/render-packing.js` renders the packing list, bag planner, and packing controls
 - `js/data.js`, `js/warnings.js`, `js/format.js`, `js/constants.js`, and `js/render-shared.js` hold shared logic
 - `sw.js` service worker — pre-caches all app assets, serves the app offline, and notifies the page when a new version activates
 - `manifest.json` PWA manifest — name, icons, and display settings for home screen installation
 - `offline.html` fallback page shown when the user is offline and requests an uncached resource
 - `brand.svg` local brand image used in the app header
+- `backend/` AWS SAM project — `template.yaml` defines API Gateway, Lambda, DynamoDB, Cognito Identity Pool, and IAM; `functions/` holds one Lambda per route
 
 ## Current Features
 
-- Saved Trips landing page for creating, opening, resetting, deleting, exporting, importing, and sharing trips
+- Saved Trips landing page for creating, opening, resetting, deleting, exporting, importing, and cloud-sharing trips
 - Typed safety checks for destructive actions:
   - `Reset data` requires typing `RESET`
   - `Delete` requires typing `DELETE`
@@ -88,12 +93,16 @@ Once installed, the app loads fully offline from the local cache. All trip data 
 - Per-trip display currency and editable USD/RMB exchange rate for normalized cost totals
 - Controls page for item type colors plus packing setup
 - Portrait print calendar that can be saved as a PDF, including a status legend with brief Chinese explanations for each status icon
+- Cloud sharing with permission control (`private`, `read_only`, `editor`), optimistic UI updates, read-only banner for view-only visitors, debounced auto-save, 30-second background poll, and manual ↺ refresh button
 
 ## Data and Persistence
 
 - Trips, itinerary items, planning todos, packing items, bag setup, category setup, color settings, and cost settings are stored locally in browser `localStorage`
 - JSON export/import preserves itinerary data, planning todo structure, packing data, item type colors, and cost settings
-- URL sharing encodes a full trip as a compressed hash fragment; recipients open the link and the trip is imported automatically
+- Cloud sharing saves the trip to AWS DynamoDB; the share URL uses a `#trip=<uuid>` hash; recipients open the link and the trip is fetched from the API automatically
+- Permission control: owner sets `private`, `read_only`, or `editor` access; enforced by Lambda on every request
+- Cloud auto-save: owners and editors get a debounced 1.5-second save after every edit
+- Cloud polling: active shared trips poll for updates every 30 seconds; pauses in background tabs; manual refresh button in topbar
 
 ## Notes
 
