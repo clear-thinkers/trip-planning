@@ -2683,3 +2683,19 @@ button:focus-visible {
   border-color: var(--primary);
   color: #fff;
 }
+
+.last-synced-text {
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin: 12px 0 0;
+  text-align: right;
+}
+
+#refreshCloudButton {
+  font-size: 1rem;
+  padding: 0 10px;
+}
+
+#refreshCloudButton[aria-busy="true"] {
+  opacity: 0.5;
+}

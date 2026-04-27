@@ -1,4 +1,4 @@
-const CACHE = "trip-planner-v40";
+const CACHE = "trip-planner-v41";
 const ASSETS = [
   "./",
   "./index.html",
@@ -13,6 +13,7 @@ const ASSETS = [
   "./js/api.js",
   "./js/aws-auth.js",
   "./js/aws-config.js",
+  "./js/cloud-sync.js",
   "./js/constants.js",
   "./js/data.js",
   "./js/format.js",

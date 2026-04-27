@@ -37,6 +37,10 @@ export async function setTripPermission(cloudId, permission) {
 
 let _saveTimer = null;
 
+export function hasPendingSave() {
+  return _saveTimer !== null;
+}
+
 // Debounced auto-save — called from render() after every state mutation.
 export function scheduleCloudSave(trip, currentIdentityId) {
   if (!AWS_CONFIGURED || !trip?.cloudId) return;

@@ -4,6 +4,7 @@ import { getActiveTrip, requestRender, saveStore, state } from "./state.js";
 import { createNewTrip, deleteCurrentItem, exportTrip, getSelectedFilterValues, importTrip, openItemDialog, printCalendar, saveItemFromForm, setSelectedFilterValues, closeItemDialog, copyCurrentItemToDate, updateTripSettings, shareTrip } from "./render-views.js";
 import { closePackItemDialog, deleteCurrentPackItem, savePackItemFromForm, syncPackItemSubcategoryOptions } from "./render-packing.js";
 import { setTripPermission } from "./share.js";
+import { syncNow } from "./cloud-sync.js";
 
 const render = requestRender;
 
@@ -112,6 +113,8 @@ export function cacheElements() {
     "closePanelBtn",
     "readOnlyBanner",
     "cloudErrorBanner",
+    "refreshCloudButton",
+    "lastSyncedText",
   ].forEach((id) => {
     els[id] = document.getElementById(id);
   });
@@ -302,6 +305,8 @@ export function bindEvents() {
   els.closePanelBtn?.addEventListener("click", () => {
     if (els.sharePanel) els.sharePanel.hidden = true;
   });
+
+  els.refreshCloudButton?.addEventListener("click", () => syncNow());
 
   els.copyLinkBtn?.addEventListener("click", async () => {
     const val = els.shareLink?.value;

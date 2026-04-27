@@ -7,6 +7,7 @@ import { getDefaultItemTypeColor, getItemMeta, getItemTypeColor, renderCurrencyO
 import { els, getSelectedPeople, populatePeopleSelect, setSelectedPeople, updateDateTimeTbdControls, updateItemFormForType } from "./init.js";
 import { bindPackingActions, getPackingFilterTagOptions, renderPackingControls } from "./render-packing.js";
 import { buildShareUrl, saveToCloud } from "./share.js";
+import { updateLastSyncedDisplay } from "./cloud-sync.js";
 
 const render = requestRender;
 const MOBILE_BREAKPOINT = 768;
@@ -103,6 +104,7 @@ export function renderScreens() {
   els.exportButton.hidden = !inWorkspace;
   els.importButton.hidden = !inWorkspace;
   els.shareButton.hidden = !inWorkspace;
+  if (els.refreshCloudButton) els.refreshCloudButton.hidden = !inWorkspace || !state.trip?.cloudId;
   els.addItemButton.hidden = !inWorkspace;
 }
 
@@ -2110,7 +2112,7 @@ export async function shareTrip() {
   }
 }
 
-function renderSharePanel() {
+export function renderSharePanel() {
   const trip = state.trip;
   if (!trip?.cloudId) return;
 
@@ -2132,6 +2134,8 @@ function renderSharePanel() {
       });
     }
   }
+
+  updateLastSyncedDisplay();
 }
 
 export function renderReadOnlyBanner() {

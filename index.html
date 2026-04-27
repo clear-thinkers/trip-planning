@@ -39,6 +39,7 @@
           <label class="secondary-button file-button" id="importButton" for="importInput" hidden>Import JSON</label>
           <input id="importInput" type="file" accept="application/json" />
           <button class="secondary-button" id="shareButton" type="button" hidden>Share link</button>
+          <button class="icon-button" id="refreshCloudButton" type="button" hidden aria-label="Refresh from cloud" title="Refresh from cloud">&#8635;</button>
           <button class="primary-button" id="addItemButton" type="button" hidden>Add item</button>
         </div>
       </header>
@@ -363,6 +364,7 @@
             <button class="perm-btn" data-perm="editor" type="button">Anyone can edit</button>
           </div>
         </div>
+        <p class="last-synced-text" id="lastSyncedText" hidden></p>
       </div>
     </div>
 
