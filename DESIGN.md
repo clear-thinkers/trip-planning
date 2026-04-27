@@ -1,4 +1,4 @@
-# Trip Planning App Design Plan
+# Trip Planning App Design
 
 This document is the current design record for the local-first trip planner implemented in `index.html`, `styles.css`, `app.js`, and the modular files under `js/`.
 

@@ -2691,11 +2691,36 @@ button:focus-visible {
   text-align: right;
 }
 
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 #refreshCloudButton {
   font-size: 1rem;
   padding: 0 10px;
 }
 
 #refreshCloudButton[aria-busy="true"] {
-  opacity: 0.5;
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+#refreshCloudIcon.spinning {
+  display: inline-block;
+  animation: spin 0.7s linear infinite;
+}
+
+.refresh-cloud-status {
+  font-size: 0.75rem;
+  white-space: nowrap;
+  color: var(--muted);
+}
+
+.refresh-cloud-status.success {
+  color: var(--success);
+}
+
+.refresh-cloud-status.error {
+  color: var(--error);
 }

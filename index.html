@@ -39,7 +39,8 @@
           <label class="secondary-button file-button" id="importButton" for="importInput" hidden>Import JSON</label>
           <input id="importInput" type="file" accept="application/json" />
           <button class="secondary-button" id="shareButton" type="button" hidden>Share link</button>
-          <button class="icon-button" id="refreshCloudButton" type="button" hidden aria-label="Refresh from cloud" title="Refresh from cloud">&#8635;</button>
+          <span id="refreshCloudStatus" class="refresh-cloud-status" hidden></span>
+          <button class="icon-button" id="refreshCloudButton" type="button" hidden aria-label="Refresh from cloud" title="Refresh from cloud"><span id="refreshCloudIcon">&#8635;</span></button>
           <button class="primary-button" id="addItemButton" type="button" hidden>Add item</button>
         </div>
       </header>
