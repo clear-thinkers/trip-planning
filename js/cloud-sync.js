@@ -1,6 +1,6 @@
 import { getTrip } from "./api.js";
 import { normalizeTrip, requestRender, saveStore, state } from "./state.js";
-import { hasPendingSave } from "./share.js";
+import { cancelPendingSave, hasPendingSave } from "./share.js";
 
 const POLL_INTERVAL = 30_000;
 
@@ -115,6 +115,7 @@ async function _doPoll(manual = false) {
         Object.assign(trip, refreshed);
         saveStore();
         requestRender();
+        cancelPendingSave();
       }
       _lastCloudUpdatedAt = result.updatedAt;
     }

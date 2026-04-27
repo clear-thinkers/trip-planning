@@ -2119,6 +2119,7 @@ export function renderSharePanel() {
   const statusEl = document.getElementById("shareStatus");
   const linkInput = document.getElementById("shareLink");
   const linkRow = document.getElementById("shareLinkRow");
+  const roleBadge = document.getElementById("shareRoleBadge");
   const permsDiv = document.getElementById("sharePermissions");
 
   if (statusEl) statusEl.textContent = "";
@@ -2126,6 +2127,13 @@ export function renderSharePanel() {
   if (linkRow) linkRow.hidden = false;
 
   const isOwner = !trip.ownerId || trip.ownerId === state.currentIdentityId;
+
+  if (roleBadge) {
+    roleBadge.hidden = false;
+    roleBadge.className = "share-role-badge " + (isOwner ? "owner" : "editor");
+    roleBadge.textContent = isOwner ? "You are the owner" : "You have editor access";
+  }
+
   if (permsDiv) {
     permsDiv.hidden = !isOwner;
     if (isOwner) {
@@ -2147,7 +2155,8 @@ export function renderReadOnlyBanner() {
 }
 
 export function exportTrip() {
-  const blob = new Blob([JSON.stringify(state.trip, null, 2)], { type: "application/json" });
+  const { cloudId, ownerId, permission, ...exportData } = state.trip;
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
@@ -2167,6 +2176,9 @@ export function importTrip(event) {
       importedTrips.forEach((trip) => {
         trip.id = createId();
         trip.title = getUniqueTripTitle(trip.title);
+        delete trip.cloudId;
+        delete trip.ownerId;
+        delete trip.permission;
         state.store.trips.push(trip);
       });
       openTrip(importedTrips[0].id);

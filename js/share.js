@@ -42,6 +42,11 @@ export function hasPendingSave() {
 }
 
 // Debounced auto-save — called from render() after every state mutation.
+export function cancelPendingSave() {
+  clearTimeout(_saveTimer);
+  _saveTimer = null;
+}
+
 export function scheduleCloudSave(trip, currentIdentityId) {
   if (!AWS_CONFIGURED || !trip?.cloudId) return;
   const isOwner = trip.ownerId === currentIdentityId;
