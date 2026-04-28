@@ -1,7 +1,7 @@
 import { CURRENCIES, DEFAULT_TIMEZONE, ITEM_TYPES, PACK_STATUSES, STATUSES } from "./constants.js";
 import { filterAllows, getActiveTrip, normalizeCostSettings, normalizeCurrency, normalizeCostValue, normalizeDueDate, normalizeHexColor, normalizeItem, normalizeItemTypeColors, normalizePackCategories, normalizeStore, normalizeSubtodo, normalizeTodo, normalizeTrip, normalizeFilterValues, normalizeTimezone, requestRender, saveStore, state } from "./state.js";
-import { compareItems, convertCost, eachTripDate, formatCostTotals, getCalendarDates, getCostSettings, getItemsForDate, getPackingCostEntries, getPrimaryCity, getSubtodos, getTbdItems, getTodoCostEntries, getTodoDueBucket, getTravelCostEntries, getTripCities, getTripTodos, shouldShowTimezoneForItems } from "./data.js";
-import { debounce, buildDateTimeValue, createId, escapeHtml, formatCostAmount, formatDateLong, formatDateShort, formatItemTime, getDatePart, getTimePart, parseLocalDate, shiftDateTimeToDate, shiftEndDateTimeToDate, slugify, splitList, toIsoDate } from "./format.js";
+import { compareItems, convertCost, eachTripDate, formatCostTotals, getCalendarDates, getCostSettings, getItemsForDate, getMultiDaySpansForWeek, getPackingCostEntries, getPrimaryCity, getSingleDayItemsForDate, getSubtodos, getTbdItems, getTodoCostEntries, getTodoDueBucket, getTravelCostEntries, getTripCities, getTripTodos, shouldShowTimezoneForItems } from "./data.js";
+import { debounce, buildDateTimeValue, createId, escapeHtml, formatCostAmount, formatDateLong, formatDateShort, formatItemTime, formatTime, getDatePart, getTimePart, parseLocalDate, shiftDateTimeToDate, shiftEndDateTimeToDate, slugify, splitList, toIsoDate } from "./format.js";
 import { getWarnings, getWarningsForTrip } from "./warnings.js";
 import { getDefaultItemTypeColor, getItemMeta, getItemTypeColor, renderCurrencyOptions, renderItemTypeStyle, renderStatusIcon, renderTimelineRow } from "./render-shared.js";
 import { els, getSelectedPeople, populatePeopleSelect, setSelectedPeople, updateDateTimeTbdControls, updateItemFormForType } from "./init.js";
@@ -519,6 +519,15 @@ export function renderCalendarStatusLegend() {
   `;
 }
 
+function renderSpanBar({ item, colStart, colEnd, isContinuation, isExtending }) {
+  const typeColor = getItemTypeColor(item.type);
+  const timeStr =
+    !isContinuation && !item.startTimeTbd && !item.allDay && item.startDateTime
+      ? formatTime(item.startDateTime, { compact: true })
+      : "";
+  return `<button class="span-bar${isContinuation ? " span-bar--continuation" : ""}${isExtending ? " span-bar--extending" : ""}" style="grid-column: ${colStart} / ${colEnd}; --item-type-color: ${escapeHtml(typeColor)};" data-action="edit" data-id="${item.id}" data-type="${escapeHtml(item.type)}" data-calendar-drag="true" draggable="true" type="button">${renderStatusIcon(item.status)}${isContinuation ? `<span class="span-cont-arrow" aria-hidden="true">&#x25C4;</span>` : ""}<span class="span-title">${escapeHtml(item.title)}</span>${timeStr ? `<span class="span-time">${escapeHtml(timeStr)}</span>` : ""}</button>`;
+}
+
 export function renderCalendar() {
   if (isMobileViewport()) {
     els.calendarView.innerHTML = renderMobileCalendar() + renderCalendarStatusLegend();
@@ -529,38 +538,55 @@ export function renderCalendar() {
   const dates = getCalendarDates();
   const printWeekCount = Math.max(1, Math.ceil(dates.length / 7));
   const printWeekHeight = `${Math.min(1.45, 9.15 / printWeekCount).toFixed(2)}in`;
-  const days = dates.map((date) => {
-    if (!date.inRange) {
-      return `<div class="day-cell empty" aria-hidden="true"></div>`;
-    }
-    const dayItems = getItemsForDate(date.iso);
-    const showTimezone = shouldShowTimezoneForItems(dayItems);
-    const items = dayItems.slice(0, 4);
-    const city = getPrimaryCity(date.iso);
-    const itemMarkup = items
-      .map(
-        (item) => `
-          <button class="item-pill" ${renderItemTypeStyle(item.type)} data-action="edit" data-id="${item.id}" data-type="${escapeHtml(item.type)}" data-calendar-drag="true" draggable="true" type="button">
-            ${renderStatusIcon(item.status)}
-            <span class="item-time">${escapeHtml(formatItemTime(item, { showTimezone }))}</span>
-            <span class="item-title">${escapeHtml(item.title)}</span>
-            <span class="item-meta">${escapeHtml(getItemMeta(item))}</span>
-          </button>
-        `,
-      )
-      .join("");
-    const hiddenCount = dayItems.length - items.length;
-    return `
-      <div class="day-cell ${date.iso === state.selectedDate ? "selected" : ""}" data-date="${date.iso}">
-        <button class="day-button" data-action="select-day" data-date="${date.iso}" type="button">
-          <span class="date-number">${date.dayNumber}</span>
-          <span class="day-city">${escapeHtml(city)}</span>
-        </button>
-        <div class="item-stack">${itemMarkup}</div>
-        ${hiddenCount > 0 ? `<p class="more-count">+${hiddenCount} more</p>` : ""}
-      </div>
-    `;
-  });
+  const weeks = [];
+  for (let i = 0; i < dates.length; i += 7) weeks.push(dates.slice(i, i + 7));
+
+  const weeksMarkup = weeks
+    .map((weekDates) => {
+      const weekIsos = weekDates.map((d) => d.iso);
+      const spans = getMultiDaySpansForWeek(weekIsos);
+      const spanLayerMarkup = spans.length
+        ? `<div class="span-layer">${spans.map(renderSpanBar).join("")}</div>`
+        : "";
+
+      const dayCellsMarkup = weekDates
+        .map((date) => {
+          if (!date.inRange) {
+            return `<div class="day-cell empty" aria-hidden="true"></div>`;
+          }
+          const dayItems = getSingleDayItemsForDate(date.iso);
+          const showTimezone = shouldShowTimezoneForItems(dayItems);
+          const items = dayItems.slice(0, 4);
+          const city = getPrimaryCity(date.iso);
+          const itemMarkup = items
+            .map(
+              (item) => `
+                <button class="item-pill" ${renderItemTypeStyle(item.type)} data-action="edit" data-id="${item.id}" data-type="${escapeHtml(item.type)}" data-calendar-drag="true" draggable="true" type="button">
+                  ${renderStatusIcon(item.status)}
+                  <span class="item-time">${escapeHtml(formatItemTime(item, { showTimezone }))}</span>
+                  <span class="item-title">${escapeHtml(item.title)}</span>
+                  <span class="item-meta">${escapeHtml(getItemMeta(item))}</span>
+                </button>
+              `,
+            )
+            .join("");
+          const hiddenCount = dayItems.length - items.length;
+          return `
+            <div class="day-cell ${date.iso === state.selectedDate ? "selected" : ""}" data-date="${date.iso}">
+              <button class="day-button" data-action="select-day" data-date="${date.iso}" type="button">
+                <span class="date-number">${date.dayNumber}</span>
+                <span class="day-city">${escapeHtml(city)}</span>
+              </button>
+              <div class="item-stack">${itemMarkup}</div>
+              ${hiddenCount > 0 ? `<p class="more-count">+${hiddenCount} more</p>` : ""}
+            </div>
+          `;
+        })
+        .join("");
+
+      return `<div class="calendar-week">${spanLayerMarkup}<div class="day-layer">${dayCellsMarkup}</div></div>`;
+    })
+    .join("");
   const statusLegend = STATUSES.map((status) => renderCalendarStatusLegendItem(status)).join("");
 
   els.calendarView.innerHTML = `
@@ -569,7 +595,7 @@ export function renderCalendar() {
       <div class="weekday-row">
         ${["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => `<div class="weekday">${day}</div>`).join("")}
       </div>
-      <div class="calendar-grid">${days.join("")}</div>
+      <div class="calendar-grid">${weeksMarkup}</div>
     </div>
     <section class="calendar-status-legend" aria-label="\u72b6\u6001\u56fe\u4f8b / Status legend">
       <h3>状态图例</h3>

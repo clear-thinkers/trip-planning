@@ -42,7 +42,7 @@ Once installed, the app loads fully offline from the local cache. All trip data 
 - `js/aws-auth.js` Cognito unauthenticated identity init and SigV4 request signing
 - `js/aws-config.js` `API_BASE_URL`, `IDENTITY_POOL_ID`, and `AWS_REGION` constants
 - `js/render-packing.js` renders the packing list, bag planner, and packing controls
-- `js/data.js`, `js/warnings.js`, `js/format.js`, `js/constants.js`, and `js/render-shared.js` hold shared logic
+- `js/data.js`, `js/calendar-layout.js`, `js/warnings.js`, `js/format.js`, `js/constants.js`, and `js/render-shared.js` hold shared logic (`calendar-layout.js` contains the pure span-bar layout helpers: `isMultiDayItem` and `computeSpanBarsForWeek`)
 - `sw.js` service worker — pre-caches all app assets, serves the app offline, and notifies the page when a new version activates
 - `manifest.json` PWA manifest — name, icons, and display settings for home screen installation
 - `offline.html` fallback page shown when the user is offline and requests an uncached resource
@@ -57,6 +57,7 @@ Once installed, the app loads fully offline from the local cache. All trip data 
   - `Delete` requires typing `DELETE`
 - Reorganized multi-view workspace with `Calendar`, `List`, `Day detail`, `Planning Todos`, `Packing`, `Costs`, and `Controls`
 - Calendar, list, and day-detail itinerary planning with add, edit, copy, delete, and drag-to-move support
+- Multi-day calendar items render as a single horizontal span bar that crosses column boundaries, with per-week continuation segments (◄) for items that cross week rows; single-day items remain as per-cell pills; span bars are draggable and preserve item duration on drop
 - Item types for Flight, Hotel, Activity, Family Visit, Meal, Transit, Rest, Reminder, Lesson, and Custom
 - Flight-aware itinerary fields for departure city, arrival city, airline, and confirmation code
 - Per-item tags, people, links, notes, costs, and per-endpoint timezones

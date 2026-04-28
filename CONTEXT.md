@@ -33,7 +33,8 @@ Current file roles:
 - `js/aws-auth.js`: AWS Cognito unauthenticated identity init, SigV4 request signing via AWS SDK v2
 - `js/aws-config.js`: `API_BASE_URL`, `IDENTITY_POOL_ID`, `AWS_REGION` constants; `AWS_CONFIGURED` flag
 - `js/render-packing.js`: packing list, bag planner, packing dialogs, packing controls
-- `js/data.js`: derived trip data, filters, costs, packing progress
+- `js/data.js`: derived trip data, filters, costs, packing progress; exports `getSingleDayItemsForDate` and `getMultiDaySpansForWeek` as stateful wrappers over `calendar-layout.js`
+- `js/calendar-layout.js`: pure helpers `isMultiDayItem` and `computeSpanBarsForWeek` — no DOM or state dependencies, importable in Node.js for unit testing
 - `js/warnings.js`: trip and packing warning generation
 - `js/format.js`: formatting, ids, date helpers, escaping
 - `js/constants.js`: item types, statuses, currencies, timezones, default packing categories
@@ -63,7 +64,9 @@ The current workspace includes:
 2. Calendar View
    - Default view after opening a trip.
    - Shows itinerary items across calendar weeks.
-   - Supports drag-and-drop to move an item's start date.
+   - Multi-day items (endDate > startDate) render as horizontal span bars that cross column boundaries; single-day items remain as per-cell pills.
+   - Span bars that cross a week boundary wrap into continuation segments in the next week row, marked with a ◄ arrow.
+   - Supports drag-and-drop to move an item's start date; duration is preserved on drop.
 
 3. List View
    - Chronological itinerary grouped by date.
@@ -118,8 +121,9 @@ Implemented:
 - dedicated packing planner with categories, bags, and bag assignment
 - warnings panel plus selected-day context
 - cost tracking for itinerary items, todos, subtodos, and packing items
-- calendar drag-and-drop for itinerary date changes
+- calendar drag-and-drop for itinerary date changes (works for both single-day pills and multi-day span bars; duration preserved on move)
 - drag-to-reorder for todos, subtodos, bags, categories, and sub-categories where relevant
+- multi-day calendar span bars that cross column and week-row boundaries, with continuation and extending visual indicators
 - JSON export/import
 - Cloud sharing — trip saved to AWS DynamoDB; share link uses `#trip=<uuid>` hash; recipients open the link and the trip is fetched from the API automatically
 - Permission control — owner sets `private`, `read_only`, or `editor` access from the share panel; optimistic UI with revert on failure
@@ -336,11 +340,13 @@ Purpose:
 
 Current behavior:
 
-- shows itinerary items in calendar cells
-- supports drag-and-drop date moves
-- preserves original time and multi-day span
+- calendar is structured as per-week containers, each with an optional span layer (for multi-day items) above a day layer (for single-day pills)
+- multi-day items (endDate > startDate) render as span bars using CSS `grid-column` to cross day-column boundaries; they are removed from the per-cell pill stacks
+- continuation segments (◄ prefix, flat left edge) appear in subsequent week rows when a span crosses a week boundary; extending segments (flat right edge) appear when a span exits the right edge of a week row
+- single-day items continue to render as per-cell pills, capped at 4 per day with a "+N more" indicator
+- drag-and-drop works for both pills and span bars; dropping onto any day cell moves the item's start date while preserving duration
 - uses trip-specific item type colors
-- supports print-to-PDF output
+- supports print-to-PDF output; span bars render in compact form in print layout
 - printed calendar includes a status legend with Chinese descriptions for each status icon
 
 ### List View

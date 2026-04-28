@@ -582,7 +582,8 @@ button:focus-visible {
 }
 
 .weekday-row,
-.calendar-grid {
+.span-layer,
+.day-layer {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
 }
@@ -594,6 +595,88 @@ button:focus-visible {
   font-size: 0.78rem;
   font-weight: 800;
   padding: 10px;
+}
+
+.span-layer {
+  column-gap: 0;
+  padding: 3px 4px 0;
+  row-gap: 2px;
+}
+
+.span-bar {
+  align-items: center;
+  background: #f3f7f7;
+  border: 1px solid rgba(47, 111, 115, 0.16);
+  border-left: 4px solid var(--item-type-color, var(--type-plan));
+  border-radius: var(--radius);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  font-size: 0.82rem;
+  gap: 4px;
+  min-height: 24px;
+  overflow: hidden;
+  padding: 3px 8px 3px 6px;
+  position: relative;
+  text-align: left;
+  white-space: nowrap;
+  width: 100%;
+}
+
+.span-bar--continuation {
+  border-left-color: rgba(47, 111, 115, 0.16);
+  border-left-width: 1px;
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.span-bar--extending {
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+
+.span-bar--continuation.span-bar--extending {
+  border-radius: 0;
+}
+
+.span-bar[data-calendar-drag="true"] {
+  cursor: grab;
+}
+
+.span-bar[data-calendar-drag="true"].dragging {
+  opacity: 0.58;
+}
+
+.span-bar .status-icon {
+  flex: 0 0 auto;
+  height: 16px;
+  position: static;
+  width: 16px;
+}
+
+.span-bar .status-icon svg {
+  height: 11px;
+  width: 11px;
+}
+
+.span-title {
+  flex: 1;
+  font-size: 0.82rem;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.span-time {
+  color: var(--muted);
+  flex: 0 0 auto;
+  font-size: 0.74rem;
+  font-weight: 700;
+  margin-left: auto;
+}
+
+.span-cont-arrow {
+  color: var(--muted);
+  flex: 0 0 auto;
+  font-size: 0.7rem;
 }
 
 .day-cell {
@@ -2393,8 +2476,43 @@ button:focus-visible {
     line-height: 1.35;
   }
 
-  .calendar-grid {
+  .day-layer {
     grid-auto-rows: var(--print-week-height, 1.45in);
+  }
+
+  .span-layer {
+    padding: 2px 2px 0;
+    row-gap: 1px;
+  }
+
+  .span-bar {
+    border-left-width: 3px;
+    cursor: default;
+    min-height: 0;
+    padding: 2px 5px 2px 4px;
+  }
+
+  .span-title {
+    font-size: 0.65rem;
+    line-height: 1.15;
+  }
+
+  .span-time {
+    font-size: 0.58rem;
+  }
+
+  .span-bar .status-icon {
+    height: 12px;
+    width: 12px;
+  }
+
+  .span-bar .status-icon svg {
+    height: 9px;
+    width: 9px;
+  }
+
+  .span-cont-arrow {
+    font-size: 0.6rem;
   }
 
   .weekday {
@@ -2415,7 +2533,8 @@ button:focus-visible {
   }
 
   .day-button,
-  .item-pill {
+  .item-pill,
+  .span-bar {
     break-inside: avoid;
     cursor: default;
   }

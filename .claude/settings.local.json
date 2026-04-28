@@ -10,7 +10,14 @@
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
       "Bash(git push *)",
-      "Bash(aws dynamodb *)"
+      "Bash(aws dynamodb *)",
+      "Bash(git -C \"c:/Users/alexi/coding/trip-planning\" status)",
+      "Bash(git -C \"c:/Users/alexi/coding/trip-planning\" diff)",
+      "Bash(git -C \"c:/Users/alexi/coding/trip-planning\" add index.html js/cloud-sync.js js/render-views.js js/share.js styles.css sw.js)",
+      "Bash(git -C c:/Users/alexi/coding/trip-planning commit -m ' *)",
+      "Bash(git -C \"c:/Users/alexi/coding/trip-planning\" push)",
+      "Bash(grep -n \"saveStore\\\\|requestRender\\\\|state\\\\\\\\.trip\" /c/Users/alexi/coding/trip-planning/js/render-views.js)",
+      "Bash(node tests/calendar-layout.test.mjs)"
     ]
   }
 }

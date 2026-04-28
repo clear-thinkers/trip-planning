@@ -1,5 +1,8 @@
 import { state, filterAllows, normalizeCostSettings, normalizeCostValue, normalizeCurrency, normalizeFilterValues, normalizeTimezone } from "./state.js";
 import { formatCostAmount, formatDateShort, getDatePart, parseLocalDate, toIsoDate } from "./format.js";
+import { isMultiDayItem, computeSpanBarsForWeek } from "./calendar-layout.js";
+
+export { isMultiDayItem };
 
 export function getCalendarDates() {
   const tripDates = eachTripDate();
@@ -34,6 +37,16 @@ export function getItemsForDate(date) {
   return filteredItems()
     .filter((item) => itemOccursOnDate(item, date))
     .sort(compareItems);
+}
+
+export function getSingleDayItemsForDate(date) {
+  return filteredItems()
+    .filter((item) => itemOccursOnDate(item, date) && !isMultiDayItem(item))
+    .sort(compareItems);
+}
+
+export function getMultiDaySpansForWeek(weekDates) {
+  return computeSpanBarsForWeek(filteredItems(), weekDates);
 }
 
 export function getTripTodos() {
