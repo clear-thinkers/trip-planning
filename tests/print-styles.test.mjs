@@ -59,8 +59,13 @@ function rem(val) {
 console.log("\nStructural rules");
 
 assert(
-  ".day-layer uses auto row height (not fixed inches)",
-  getPrintProp(".day-layer", "grid-auto-rows") === "auto",
+  ".day-layer uses flex layout so each cell sizes independently",
+  getPrintProp(".day-layer", "display") === "flex",
+);
+
+assert(
+  ".day-layer aligns cells to flex-start so short cells don't stretch",
+  getPrintProp(".day-layer", "align-items") === "flex-start",
 );
 
 assert(

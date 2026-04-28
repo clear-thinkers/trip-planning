@@ -2478,7 +2478,8 @@ button:focus-visible {
   }
 
   .day-layer {
-    grid-auto-rows: auto;
+    align-items: flex-start;
+    display: flex;
   }
 
   .span-layer {
@@ -2523,6 +2524,8 @@ button:focus-visible {
 
   .day-cell {
     cursor: default;
+    flex: 1;
+    min-width: 0;
     overflow: visible;
     padding: 5px;
   }
