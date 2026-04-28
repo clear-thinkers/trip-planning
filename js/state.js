@@ -33,6 +33,7 @@ export const state = {
   view: "calendar",
   packingSubView: "list",
   selectedDate: null,
+  isPrinting: false,
   warningsExpanded: false,
   tripSettingsCollapsed: false,
   planningCalendarOpen: true,

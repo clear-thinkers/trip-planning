@@ -556,7 +556,7 @@ export function renderCalendar() {
           }
           const dayItems = getSingleDayItemsForDate(date.iso);
           const showTimezone = shouldShowTimezoneForItems(dayItems);
-          const items = dayItems.slice(0, 4);
+          const items = dayItems.slice(0, state.isPrinting ? Infinity : 4);
           const city = getPrimaryCity(date.iso);
           const itemMarkup = items
             .map(
@@ -2100,8 +2100,13 @@ export function copyCurrentItemToDate() {
 
 export function printCalendar() {
   state.view = "calendar";
+  state.isPrinting = true;
   render();
-  requestAnimationFrame(() => window.print());
+  requestAnimationFrame(() => {
+    window.print();
+    state.isPrinting = false;
+    render();
+  });
 }
 
 export async function shareTrip() {

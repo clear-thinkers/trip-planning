@@ -348,6 +348,7 @@ Current behavior:
 - uses trip-specific item type colors
 - supports print-to-PDF output; span bars render in compact form in print layout
 - printed calendar includes a status legend with Chinese descriptions for each status icon
+- print layout is optimized for elderly readability: large fonts (1.02rem+ for event titles, 0.92rem+ for secondary text, 1.16rem for date numbers), auto-height week rows that shrink to content (no fixed row height), all items per day shown without truncation, no content clipping
 
 ### List View
 

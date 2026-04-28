@@ -17,7 +17,8 @@
       "Bash(git -C c:/Users/alexi/coding/trip-planning commit -m ' *)",
       "Bash(git -C \"c:/Users/alexi/coding/trip-planning\" push)",
       "Bash(grep -n \"saveStore\\\\|requestRender\\\\|state\\\\\\\\.trip\" /c/Users/alexi/coding/trip-planning/js/render-views.js)",
-      "Bash(node tests/calendar-layout.test.mjs)"
+      "Bash(node tests/calendar-layout.test.mjs)",
+      "Bash(node tests/print-styles.test.mjs)"
     ]
   }
 }

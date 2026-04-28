@@ -2415,12 +2415,12 @@ button:focus-visible {
   }
 
   .print-calendar-header h2 {
-    font-size: 1.18rem;
+    font-size: 1.48rem;
     line-height: 1.25;
   }
 
   .print-calendar-header p {
-    font-size: 0.88rem;
+    font-size: 1.2rem;
     line-height: 1.45;
     margin-bottom: 0;
   }
@@ -2430,6 +2430,7 @@ button:focus-visible {
     border-radius: 0;
     box-shadow: none;
     break-inside: avoid;
+    overflow: visible;
     page-break-inside: avoid;
   }
 
@@ -2444,7 +2445,7 @@ button:focus-visible {
   }
 
   .calendar-status-legend h3 {
-    font-size: 0.78rem;
+    font-size: 1.12rem;
     margin-bottom: 6px;
   }
 
@@ -2468,37 +2469,37 @@ button:focus-visible {
   }
 
   .calendar-status-legend-copy strong {
-    font-size: 0.68rem;
+    font-size: 1.02rem;
   }
 
   .calendar-status-legend-copy span {
-    font-size: 0.62rem;
+    font-size: 0.96rem;
     line-height: 1.35;
   }
 
   .day-layer {
-    grid-auto-rows: var(--print-week-height, 1.45in);
+    grid-auto-rows: auto;
   }
 
   .span-layer {
     padding: 2px 2px 0;
-    row-gap: 1px;
+    row-gap: 2px;
   }
 
   .span-bar {
     border-left-width: 3px;
     cursor: default;
     min-height: 0;
-    padding: 2px 5px 2px 4px;
+    padding: 3px 5px 3px 5px;
   }
 
   .span-title {
-    font-size: 0.65rem;
-    line-height: 1.15;
+    font-size: 1.02rem;
+    line-height: 1.2;
   }
 
   .span-time {
-    font-size: 0.58rem;
+    font-size: 0.92rem;
   }
 
   .span-bar .status-icon {
@@ -2512,19 +2513,18 @@ button:focus-visible {
   }
 
   .span-cont-arrow {
-    font-size: 0.6rem;
+    font-size: 0.92rem;
   }
 
   .weekday {
-    font-size: 0.68rem;
-    padding: 4px;
+    font-size: 1.02rem;
+    padding: 5px 4px;
   }
 
   .day-cell {
     cursor: default;
-    min-height: 0;
-    overflow: hidden;
-    padding: 4px;
+    overflow: visible;
+    padding: 5px;
   }
 
   .day-cell.selected {
@@ -2544,31 +2544,31 @@ button:focus-visible {
   }
 
   .date-number {
-    font-size: 0.82rem;
+    font-size: 1.16rem;
   }
 
   .day-city {
-    font-size: 0.62rem;
+    font-size: 0.96rem;
   }
 
   .item-stack {
-    gap: 3px;
-    margin-top: 3px;
+    gap: 4px;
+    margin-top: 4px;
   }
 
   .item-pill {
     border-left-width: 3px;
-    padding: 3px 22px 3px 5px;
+    padding: 4px 22px 4px 6px;
   }
 
   .item-time {
-    font-size: 0.58rem;
+    font-size: 0.92rem;
     margin-bottom: 1px;
   }
 
   .item-title {
-    font-size: 0.66rem;
-    line-height: 1.15;
+    font-size: 1.02rem;
+    line-height: 1.2;
   }
 
   .item-meta {
@@ -2588,8 +2588,8 @@ button:focus-visible {
   }
 
   .more-count {
-    font-size: 0.58rem;
-    margin-top: 2px;
+    font-size: 0.92rem;
+    margin-top: 3px;
   }
 
   .inline-day-actions {
@@ -2614,7 +2614,7 @@ button:focus-visible {
   }
 
   .mobile-week-header h3 {
-    font-size: 1.08rem;
+    font-size: 1.38rem;
     line-height: 1.3;
   }
 
@@ -2631,12 +2631,12 @@ button:focus-visible {
   }
 
   .mobile-day-label {
-    font-size: 1.02rem;
+    font-size: 1.3rem;
     line-height: 1.3;
   }
 
   .mobile-day-subtitle {
-    font-size: 0.82rem;
+    font-size: 1.1rem;
   }
 
   .mobile-day-item-stack {
@@ -2648,36 +2648,36 @@ button:focus-visible {
   }
 
   .mobile-day-item-stack .item-time {
-    font-size: 0.82rem;
+    font-size: 1.08rem;
     margin-bottom: 2px;
   }
 
   .mobile-day-item-stack .item-title {
-    font-size: 0.94rem;
+    font-size: 1.2rem;
     line-height: 1.3;
   }
 
   .mobile-day-item-stack .item-meta {
     display: block;
-    font-size: 0.8rem;
+    font-size: 1.06rem;
     line-height: 1.3;
   }
 
   .mobile-day-group .badge,
   .calendar-status-legend .badge {
-    font-size: 0.72rem;
+    font-size: 0.92rem;
   }
 
   .calendar-status-legend h3 {
-    font-size: 0.98rem;
+    font-size: 1.25rem;
   }
 
   .calendar-status-legend-copy strong {
-    font-size: 0.82rem;
+    font-size: 1.08rem;
   }
 
   .calendar-status-legend-copy span {
-    font-size: 0.76rem;
+    font-size: 1.02rem;
     line-height: 1.45;
   }
 }

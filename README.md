@@ -93,7 +93,7 @@ Once installed, the app loads fully offline from the local cache. All trip data 
 - Costs page with summaries and breakdowns for travel plans, planning todos, and packing items
 - Per-trip display currency and editable USD/RMB exchange rate for normalized cost totals
 - Controls page for item type colors plus packing setup
-- Portrait print calendar that can be saved as a PDF, including a status legend with brief Chinese explanations for each status icon
+- Portrait print calendar that can be saved as a PDF, including a status legend with brief Chinese explanations for each status icon; print layout uses large accessible fonts, auto-height week rows that shrink to their content (eliminating empty cell space), and shows all items per day without truncation
 - Cloud sharing with permission control (`private`, `read_only`, `editor`), optimistic UI updates, read-only banner for view-only visitors, debounced auto-save, 30-second background poll, and manual ↺ refresh button
 
 ## Data and Persistence
