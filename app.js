@@ -2,8 +2,7 @@ import { bindEvents, cacheElements, els, populateSelects } from "./js/init.js";
 import { getActiveTrip, normalizeTrip, saveStore, setRenderCallback, state } from "./js/state.js";
 import { getUniqueTripTitle, renderAlerts, renderCalendar, renderControls, renderCosts, renderDayView, renderList, renderPlanningTodos, renderReadOnlyBanner, renderScreens, renderSidePanel, renderTabs, renderTripSettings, renderTripsList } from "./js/render-views.js";
 import { renderPacking } from "./js/render-packing.js";
-import { buildShareUrl, getCloudIdFromUrl, loadTripFromUrl, scheduleCloudSave } from "./js/share.js";
-import { startSync, stopSync } from "./js/cloud-sync.js";
+import { buildShareUrl, getCloudIdFromUrl, loadTripFromUrl } from "./js/share.js";
 import { createId } from "./js/format.js";
 import { initAuth } from "./js/aws-auth.js";
 
@@ -41,12 +40,6 @@ export function render() {
     }
   }
   saveStore();
-  scheduleCloudSave(state.trip, state.currentIdentityId);
-  if (state.trip?.cloudId) {
-    startSync(state.trip.cloudId);
-  } else {
-    stopSync();
-  }
 }
 
 setRenderCallback(render);

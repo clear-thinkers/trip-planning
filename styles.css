@@ -2826,43 +2826,23 @@ button:focus-visible {
   color: #fff;
 }
 
-.last-synced-text {
+.cloud-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.cloud-action-status {
   color: var(--muted);
-  font-size: 0.8rem;
-  margin: 12px 0 0;
-  text-align: right;
+  font-size: 0.82rem;
+  margin: 8px 0 0;
+  min-height: 1.2em;
 }
 
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-#refreshCloudButton {
-  font-size: 1rem;
-  padding: 0 10px;
-}
-
-#refreshCloudButton[aria-busy="true"] {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-#refreshCloudIcon.spinning {
-  display: inline-block;
-  animation: spin 0.7s linear infinite;
-}
-
-.refresh-cloud-status {
-  font-size: 0.75rem;
-  white-space: nowrap;
-  color: var(--muted);
-}
-
-.refresh-cloud-status.success {
+.cloud-action-status.success {
   color: var(--success);
 }
 
-.refresh-cloud-status.error {
+.cloud-action-status.error {
   color: var(--error);
 }

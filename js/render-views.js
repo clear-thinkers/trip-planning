@@ -7,7 +7,6 @@ import { getDefaultItemTypeColor, getItemMeta, getItemTypeColor, renderCurrencyO
 import { els, getSelectedPeople, populatePeopleSelect, setSelectedPeople, updateDateTimeTbdControls, updateItemFormForType } from "./init.js";
 import { bindPackingActions, getPackingFilterTagOptions, renderPackingControls } from "./render-packing.js";
 import { buildShareUrl, saveToCloud } from "./share.js";
-import { updateLastSyncedDisplay } from "./cloud-sync.js";
 
 const render = requestRender;
 const MOBILE_BREAKPOINT = 768;
@@ -104,7 +103,6 @@ export function renderScreens() {
   els.exportButton.hidden = !inWorkspace;
   els.importButton.hidden = !inWorkspace;
   els.shareButton.hidden = !inWorkspace;
-  if (els.refreshCloudButton) els.refreshCloudButton.hidden = !inWorkspace || !state.trip?.cloudId;
   els.addItemButton.hidden = !inWorkspace;
 }
 
@@ -2152,12 +2150,15 @@ export function renderSharePanel() {
   const linkRow = document.getElementById("shareLinkRow");
   const roleBadge = document.getElementById("shareRoleBadge");
   const permsDiv = document.getElementById("sharePermissions");
+  const cloudActions = document.getElementById("cloudActions");
+  const saveBtn = document.getElementById("saveCloudButton");
 
   if (statusEl) statusEl.textContent = "";
   if (linkInput) linkInput.value = buildShareUrl(trip.cloudId);
   if (linkRow) linkRow.hidden = false;
 
   const isOwner = !trip.ownerId || trip.ownerId === state.currentIdentityId;
+  const canEdit = isOwner || trip.permission === "editor";
 
   if (roleBadge) {
     roleBadge.hidden = false;
@@ -2174,7 +2175,8 @@ export function renderSharePanel() {
     }
   }
 
-  updateLastSyncedDisplay();
+  if (cloudActions) cloudActions.hidden = false;
+  if (saveBtn) saveBtn.hidden = !canEdit;
 }
 
 export function renderReadOnlyBanner() {

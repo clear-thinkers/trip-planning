@@ -1,5 +1,4 @@
 import { createTrip, getTrip, updateTrip, updatePermission } from "./api.js";
-import { AWS_CONFIGURED } from "./aws-config.js";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -35,30 +34,33 @@ export async function setTripPermission(cloudId, permission) {
   return updatePermission(cloudId, permission);
 }
 
-let _saveTimer = null;
+let _saving = false;
+let _saveStatusTimer = null;
 
-export function hasPendingSave() {
-  return _saveTimer !== null;
-}
-
-// Debounced auto-save — called from render() after every state mutation.
-export function cancelPendingSave() {
-  clearTimeout(_saveTimer);
-  _saveTimer = null;
-}
-
-export function scheduleCloudSave(trip, currentIdentityId) {
-  if (!AWS_CONFIGURED || !trip?.cloudId) return;
-  const isOwner = trip.ownerId === currentIdentityId;
-  if (!isOwner && trip.permission !== "editor") return;
-  clearTimeout(_saveTimer);
-  _saveTimer = setTimeout(async () => {
-    _saveTimer = null;
-    try {
-      const { cloudId, ownerId, permission, ...data } = trip;
-      await updateTrip(cloudId, data);
-    } catch (err) {
-      console.error("[trip-planner] Cloud auto-save failed:", err);
+export async function manualSave(trip) {
+  if (!trip?.cloudId || _saving) return;
+  _saving = true;
+  const btn = document.getElementById("saveCloudButton");
+  const statusEl = document.getElementById("cloudActionStatus");
+  if (btn) { btn.disabled = true; btn.textContent = "Saving…"; }
+  let succeeded = false;
+  try {
+    await saveToCloud(trip);
+    succeeded = true;
+  } catch (err) {
+    console.error("[trip-planner] Manual cloud save failed:", err);
+  } finally {
+    _saving = false;
+    if (btn) { btn.disabled = false; btn.textContent = "Save to Cloud"; }
+    if (statusEl) {
+      clearTimeout(_saveStatusTimer);
+      statusEl.textContent = succeeded ? "✓ Saved to cloud" : "Save failed";
+      statusEl.className = "cloud-action-status" + (succeeded ? " success" : " error");
+      statusEl.hidden = false;
+      _saveStatusTimer = setTimeout(() => {
+        statusEl.hidden = true;
+        _saveStatusTimer = null;
+      }, succeeded ? 2000 : 3000);
     }
-  }, 1500);
+  }
 }
