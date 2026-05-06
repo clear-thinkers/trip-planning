@@ -20,6 +20,13 @@ export function renderCurrencyOptions(selected = "USD") {
   return CURRENCIES.map((currency) => `<option value="${currency}" ${currency === normalized ? "selected" : ""}>${currency}</option>`).join("");
 }
 
+export function renderPeopleBadge(item, options = {}) {
+  const people = Array.isArray(item?.people) ? item.people.map((person) => String(person).trim()).filter(Boolean) : [];
+  if (!people.length) return "";
+  const className = options.className || "item-people";
+  return `<span class="${escapeHtml(className)}">${escapeHtml(people.join(", "))}</span>`;
+}
+
 export function renderTimelineRow(item, options = {}) {
   const isWarning = getWarnings().some((warning) => warning.itemIds?.includes(item.id));
   return `
@@ -34,7 +41,7 @@ export function renderTimelineRow(item, options = {}) {
           ${item.airline ? `<span class="badge">${escapeHtml(item.airline)}</span>` : ""}
           ${item.confirmationCode ? `<span class="badge">${escapeHtml(item.confirmationCode)}</span>` : ""}
           ${item.cost ? `<span class="badge">${escapeHtml(formatCost(item))}</span>` : ""}
-          ${item.people.length ? `<span class="badge">${escapeHtml(item.people.join(", "))}</span>` : ""}
+          ${renderPeopleBadge(item, { className: "badge" })}
         </span>
       </button>
     </div>

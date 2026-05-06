@@ -110,6 +110,12 @@ assert(
   spanTimeSize !== null && spanTimeSize >= MIN_SECONDARY,
 );
 
+const spanPeopleSize = rem(getPrintProp(".span-people", "font-size"));
+assert(
+  `.span-people font-size >= ${MIN_SECONDARY}rem`,
+  spanPeopleSize !== null && spanPeopleSize >= MIN_SECONDARY,
+);
+
 const dateNumberSize = rem(getPrintProp(".date-number", "font-size"));
 assert(
   `.date-number font-size >= ${MIN_DATE}rem (was 0.82rem)`,
@@ -132,6 +138,17 @@ const moreCountSize = rem(getPrintProp(".more-count", "font-size"));
 assert(
   `.more-count font-size >= ${MIN_SECONDARY}rem (was 0.58rem)`,
   moreCountSize !== null && moreCountSize >= MIN_SECONDARY,
+);
+
+const itemPeopleSize = rem(getPrintProp(".item-people", "font-size"));
+assert(
+  `.item-people font-size >= ${MIN_SECONDARY}rem`,
+  itemPeopleSize !== null && itemPeopleSize >= MIN_SECONDARY,
+);
+
+assert(
+  ".item-people remains visible when .item-meta is hidden",
+  getPrintProp(".item-people", "display") === "block",
 );
 
 // ── Legend font sizes ────────────────────────────────────────────────────────
@@ -168,6 +185,12 @@ const mobileDaySubtitleSize = rem(getPrintProp(".mobile-day-subtitle", "font-siz
 assert(
   `.mobile-day-subtitle font-size >= ${MIN_MOBILE_SECONDARY}rem`,
   mobileDaySubtitleSize !== null && mobileDaySubtitleSize >= MIN_MOBILE_SECONDARY,
+);
+
+const mobileItemPeopleSize = rem(getPrintProp(".mobile-day-item-stack .item-people", "font-size"));
+assert(
+  `.mobile-day-item-stack .item-people font-size >= ${MIN_MOBILE_SECONDARY}rem`,
+  mobileItemPeopleSize !== null && mobileItemPeopleSize >= MIN_MOBILE_SECONDARY,
 );
 
 // ── Summary ──────────────────────────────────────────────────────────────────

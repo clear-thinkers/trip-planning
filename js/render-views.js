@@ -3,7 +3,7 @@ import { filterAllows, getActiveTrip, normalizeCostSettings, normalizeCurrency, 
 import { compareItems, convertCost, eachTripDate, formatCostTotals, getCalendarDates, getCostSettings, getItemsForDate, getMultiDaySpansForWeek, getPackingCostEntries, getPrimaryCity, getSingleDayItemsForDate, getSubtodos, getTbdItems, getTodoCostEntries, getTodoDueBucket, getTravelCostEntries, getTripCities, getTripTodos, shouldShowTimezoneForItems } from "./data.js";
 import { debounce, buildDateTimeValue, createId, escapeHtml, formatCostAmount, formatDateLong, formatDateShort, formatItemTime, formatTime, getDatePart, getTimePart, parseLocalDate, shiftDateTimeToDate, shiftEndDateTimeToDate, slugify, splitList, toIsoDate } from "./format.js";
 import { getWarnings, getWarningsForTrip } from "./warnings.js";
-import { getDefaultItemTypeColor, getItemMeta, getItemTypeColor, renderCurrencyOptions, renderItemTypeStyle, renderStatusIcon, renderTimelineRow } from "./render-shared.js";
+import { getDefaultItemTypeColor, getItemMeta, getItemTypeColor, renderCurrencyOptions, renderItemTypeStyle, renderPeopleBadge, renderStatusIcon, renderTimelineRow } from "./render-shared.js";
 import { els, getSelectedPeople, populatePeopleSelect, setSelectedPeople, updateDateTimeTbdControls, updateItemFormForType } from "./init.js";
 import { bindPackingActions, getPackingFilterTagOptions, renderPackingControls } from "./render-packing.js";
 import { buildShareUrl, saveToCloud } from "./share.js";
@@ -436,6 +436,7 @@ export function renderGroupedItineraryDay(date, options = {}) {
                       <span class="item-time">${escapeHtml(formatItemTime(item, { showTimezone }))}</span>
                       <span class="item-title">${escapeHtml(item.title)}</span>
                       <span class="item-meta">${escapeHtml(getItemMeta(item))}</span>
+                      ${renderPeopleBadge(item)}
                     </button>
                   `,
                 )
@@ -523,7 +524,7 @@ function renderSpanBar({ item, colStart, colEnd, isContinuation, isExtending }) 
     !isContinuation && !item.startTimeTbd && !item.allDay && item.startDateTime
       ? formatTime(item.startDateTime, { compact: true })
       : "";
-  return `<button class="span-bar${isContinuation ? " span-bar--continuation" : ""}${isExtending ? " span-bar--extending" : ""}" style="grid-column: ${colStart} / ${colEnd}; --item-type-color: ${escapeHtml(typeColor)};" data-action="edit" data-id="${item.id}" data-type="${escapeHtml(item.type)}" data-calendar-drag="true" draggable="true" type="button">${renderStatusIcon(item.status)}${isContinuation ? `<span class="span-cont-arrow" aria-hidden="true">&#x25C4;</span>` : ""}<span class="span-title">${escapeHtml(item.title)}</span>${timeStr ? `<span class="span-time">${escapeHtml(timeStr)}</span>` : ""}</button>`;
+  return `<button class="span-bar${isContinuation ? " span-bar--continuation" : ""}${isExtending ? " span-bar--extending" : ""}" style="grid-column: ${colStart} / ${colEnd}; --item-type-color: ${escapeHtml(typeColor)};" data-action="edit" data-id="${item.id}" data-type="${escapeHtml(item.type)}" data-calendar-drag="true" draggable="true" type="button">${renderStatusIcon(item.status)}${isContinuation ? `<span class="span-cont-arrow" aria-hidden="true">&#x25C4;</span>` : ""}<span class="span-title">${escapeHtml(item.title)}</span>${timeStr ? `<span class="span-time">${escapeHtml(timeStr)}</span>` : ""}${renderPeopleBadge(item, { className: "span-people" })}</button>`;
 }
 
 export function renderCalendar() {
@@ -564,6 +565,7 @@ export function renderCalendar() {
                   <span class="item-time">${escapeHtml(formatItemTime(item, { showTimezone }))}</span>
                   <span class="item-title">${escapeHtml(item.title)}</span>
                   <span class="item-meta">${escapeHtml(getItemMeta(item))}</span>
+                  ${renderPeopleBadge(item)}
                 </button>
               `,
             )
@@ -826,10 +828,13 @@ function renderPeopleControls() {
     ? people
         .map(
           (name) => `
-            <div class="type-color-row people-list-row">
-              <span>${escapeHtml(name)}</span>
-              <button class="danger-button compact-button" data-person-delete="${escapeHtml(name)}" type="button">Remove</button>
-            </div>
+            <form class="type-color-row people-list-row" data-person-edit-form="${escapeHtml(name)}">
+              <input name="name" type="text" value="${escapeHtml(name)}" aria-label="${escapeHtml(`Edit ${name}`)}" required />
+              <div class="people-row-actions">
+                <button class="secondary-button compact-button" type="submit">Save</button>
+                <button class="danger-button compact-button" data-person-delete="${escapeHtml(name)}" type="button">Remove</button>
+              </div>
+            </form>
           `,
         )
         .join("")
@@ -863,6 +868,32 @@ function addTripPerson(name) {
 
 function deleteTripPerson(name) {
   state.trip.people = state.trip.people.filter((p) => p !== name);
+  saveStore();
+  render();
+}
+
+function updateTripPerson(oldName, newName, input) {
+  const original = String(oldName || "").trim();
+  const trimmed = String(newName || "").trim();
+  if (!original || !trimmed) return;
+  if (original === trimmed) {
+    render();
+    return;
+  }
+  const duplicate = state.trip.people.some((person) => person !== original && person.toLowerCase() === trimmed.toLowerCase());
+  if (duplicate) {
+    input?.setCustomValidity("Use a unique person name.");
+    input?.reportValidity();
+    return;
+  }
+
+  state.trip.people = state.trip.people.map((person) => (person === original ? trimmed : person));
+  state.trip.items = state.trip.items.map((item) => ({
+    ...item,
+    person: item.person === original ? trimmed : item.person,
+    people: Array.isArray(item.people) ? item.people.map((person) => (person === original ? trimmed : person)) : item.people,
+  }));
+  state.trip.updatedAt = new Date().toISOString();
   saveStore();
   render();
 }
@@ -920,6 +951,14 @@ export function renderControls() {
   els.controlsView.querySelector("#resetAllColorsButton").addEventListener("click", resetItemTypeColors);
   els.controlsView.querySelectorAll("[data-person-delete]").forEach((button) => {
     button.addEventListener("click", () => deleteTripPerson(button.dataset.personDelete));
+  });
+  els.controlsView.querySelectorAll("[data-person-edit-form]").forEach((form) => {
+    const input = form.elements.name;
+    input?.addEventListener("input", () => input.setCustomValidity(""));
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      updateTripPerson(form.dataset.personEditForm, input.value, input);
+    });
   });
   const addPersonForm = els.controlsView.querySelector("#addPersonForm");
   if (addPersonForm) {
@@ -1017,6 +1056,7 @@ export function renderSidePanel() {
                       <span class="item-time">${escapeHtml(formatItemTime(item, { showTimezone }))}</span>
                       <span class="item-title">${escapeHtml(item.title)}</span>
                       <span class="item-meta">${escapeHtml(item.status)}</span>
+                      ${renderPeopleBadge(item)}
                     </button>
                   `,
                 )
